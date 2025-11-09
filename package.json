@@ -1,13 +1,54 @@
 {
-  "name": "project-management",
+  "name": "project-management-system",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Dynamic Project Management System with Form Builder",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "concurrently \"npm run dev:next\" \"npm run dev:server\"",
+    "dev:next": "next dev",
+    "dev:server": "nodemon server/index.js",
+    "build": "next build",
+    "start": "concurrently \"next start\" \"node server/index.js\"",
+    "lint": "next lint",
+    "init": "node scripts/init-data.js",
+    "init:admin": "node scripts/init-data.js --create-admin"
   },
-  "keywords": [],
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "uuid": "^9.0.1",
+    "date-fns": "^3.3.1",
+    "zod": "^3.22.4",
+    "react-hook-form": "^7.51.0",
+    "axios": "^1.6.8",
+    "react-icons": "^5.0.1",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.73",
+    "@types/react-dom": "^18.2.23",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "nodemon": "^3.1.0",
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "project-management",
+    "form-builder",
+    "nextjs",
+    "react",
+    "express"
+  ],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "license": "MIT"
 }
