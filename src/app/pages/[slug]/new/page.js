@@ -6,8 +6,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import MainLayout from '@/components/layout/MainLayout'
 import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer'
+import ContentHeader from '@/components/common/ContentHeader'
 import Loading from '@/components/common/Loading'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
 
 export default function NewEntryPage() {
@@ -110,60 +110,59 @@ export default function NewEntryPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <MainLayout
+      pageTitle={`Create New ${page.title} Entry`}
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: page?.title || 'Loading...', href: `/pages/${params.slug}` },
             { label: 'Create New Entry' }
-          ]} 
+          ]}
         />
         
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Create New {page.title} Entry
-          </h1>
-          {page.description && (
-            <p className="text-gray-600">{page.description}</p>
-          )}
-        </div>
-
-        {!selectedForm && page.forms && page.forms.length > 1 ? (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Select a Form
-              </h2>
-              <div className="space-y-3">
-                {page.forms.map((form) => (
-                  <button
-                    key={form.id}
-                    onClick={() => setSelectedForm(form)}
-                    className="w-full text-left px-4 py-3 border border-gray-300 rounded-md hover:bg-primary-50 hover:border-primary-500 transition-colors"
-                  >
-                    <h3 className="font-medium text-gray-900">{form.title}</h3>
-                    {form.description && (
-                      <p className="text-sm text-gray-600 mt-1">{form.description}</p>
-                    )}
-                  </button>
-                ))}
+        {/* Main Content */}
+        <div className="flex-1">
+          {!selectedForm && page.forms && page.forms.length > 1 ? (
+            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex items-center justify-center">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Select a Form
+                </h2>
+                <div className="space-y-3">
+                  {page.forms.map((form) => (
+                    <button
+                      key={form.id}
+                      onClick={() => setSelectedForm(form)}
+                      className="w-full text-left px-4 py-3 border border-gray-300 rounded-md hover:bg-primary-50 hover:border-primary-500 transition-colors"
+                    >
+                      <h3 className="font-medium text-gray-900">{form.title}</h3>
+                      {form.description && (
+                        <p className="text-sm text-gray-600 mt-1">{form.description}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ) : selectedForm ? (
-          <DynamicFormRenderer
-            form={selectedForm}
-            onSubmit={handleSubmit}
-            onSaveDraft={handleSaveDraft}
-            mode="create"
-          />
-        ) : (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <p className="text-gray-600">
-              No forms are available for this page yet.
-            </p>
-          </div>
-        )}
+          ) : selectedForm ? (
+            <DynamicFormRenderer
+              form={selectedForm}
+              onSubmit={handleSubmit}
+              onSaveDraft={handleSaveDraft}
+              mode="create"
+            />
+          ) : (
+            <div className="px-4 sm:px-6 lg:px-8 py-8 h-full flex items-center justify-center">
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                <p className="text-gray-600">
+                  No forms are available for this page yet.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </MainLayout>
   )

@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import AdminLayout from '@/components/layout/AdminLayout'
+import ContentHeader from '@/components/common/ContentHeader'
 import DataTable from '@/components/common/DataTable'
 import GridCard from '@/components/common/GridCard'
 import Loading from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
-import { FiEdit, FiTrash2, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FiEdit, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi'
 import Link from 'next/link'
 
 export default function AdminPagesPage() {
@@ -131,18 +131,29 @@ export default function AdminPagesPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <AdminLayout
+      pageTitle="Manage Pages"
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: 'Admin', href: '/admin' },
             { label: 'Pages' }
-          ]} 
+          ]}
+          actions={
+            <Button onClick={() => handleOpenModal()}>
+              <FiPlus className="mr-2" />
+              New Page
+            </Button>
+          }
         />
         
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         <DataTable
-          title="Manage Pages"
-          description="Create and organize pages for your forms"
+          title={null}
+          description={null}
           data={pages}
           searchPlaceholder="Search pages..."
           searchKeys={['title', 'description']}
@@ -154,20 +165,25 @@ export default function AdminPagesPage() {
               accessor: 'title',
               render: (page) => (
                 <div>
-                  <p className="font-medium text-gray-900">{page.title}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{page.title}</p>
                   {page.description && (
-                    <p className="text-sm text-gray-600 mt-0.5">{page.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{page.description}</p>
                   )}
                 </div>
               )
             },
             {
-              header: 'Forms',
-              accessor: 'forms',
-              align: 'center',
-              noWrap: true,
+              header: 'URL',
+              accessor: 'slug',
               render: (page) => (
-                <span className="text-gray-900">{page.forms?.length || 0}</span>
+                <Link 
+                  href={`/pages/${page.slug}`}
+                  className="text-primary-600 hover:text-primary-700 hover:underline font-mono text-sm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  /pages/{page.slug}
+                </Link>
               )
             },
             {
@@ -178,8 +194,8 @@ export default function AdminPagesPage() {
               render: (page) => (
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   page.published 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                 }`}>
                   {page.published ? 'Published' : 'Draft'}
                 </span>
@@ -232,8 +248,6 @@ export default function AdminPagesPage() {
             }
           ]}
           
-          onAdd={() => handleOpenModal()}
-          addButtonText="New Page"
           emptyMessage="No pages yet"
           emptyActionText="Create Your First Page"
           onEmptyAction={() => handleOpenModal()}
@@ -276,8 +290,15 @@ export default function AdminPagesPage() {
                 }
               ]}
             >
-              <div className="text-sm text-gray-600">
-                <p>{page.forms?.length || 0} form(s)</p>
+              <div className="text-sm">
+                <Link 
+                  href={`/pages/${page.slug}`}
+                  className="text-primary-600 hover:text-primary-700 hover:underline font-mono"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  /pages/{page.slug}
+                </Link>
               </div>
             </GridCard>
           )}
@@ -335,6 +356,7 @@ export default function AdminPagesPage() {
           </div>
         </form>
         </Modal>
+        </div>
       </div>
     </AdminLayout>
   )

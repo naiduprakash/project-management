@@ -3,75 +3,92 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  FiFileText, 
-  FiUsers, 
-  FiShield, 
-  FiHome,
-  FiActivity
+  FiDroplet,
+  FiLayout,
+  FiGlobe,
+  FiMail,
+  FiDatabase,
+  FiShield
 } from 'react-icons/fi'
 import ResizableSidebar from '@/components/common/ResizableSidebar'
 
-const AdminSidebar = () => {
+const SettingsSidebar = () => {
   const pathname = usePathname()
 
   const menuItems = [
     {
-      id: 'overview',
-      label: 'Overview',
-      href: '/admin',
-      icon: FiHome,
-      description: 'Admin dashboard'
+      id: 'theme',
+      label: 'Theme & Appearance',
+      href: '/settings/theme',
+      icon: FiDroplet,
+      description: 'Theme, colors, and branding'
     },
     {
-      id: 'pages',
-      label: 'Pages',
-      href: '/admin/pages',
-      icon: FiFileText,
-      description: 'Manage pages and forms'
+      id: 'layout',
+      label: 'Layout',
+      href: '/settings/layout',
+      icon: FiLayout,
+      description: 'Spacing and structure'
     },
     {
-      id: 'users',
-      label: 'Users',
-      href: '/admin/users',
-      icon: FiUsers,
-      description: 'User management'
+      id: 'localization',
+      label: 'Localization',
+      href: '/settings/localization',
+      icon: FiGlobe,
+      description: 'Language and region',
+      disabled: true
     },
     {
-      id: 'roles',
-      label: 'Roles & Permissions',
-      href: '/admin/roles',
+      id: 'notifications',
+      label: 'Notifications',
+      href: '/settings/notifications',
+      icon: FiMail,
+      description: 'Email and alerts',
+      disabled: true
+    },
+    {
+      id: 'backup',
+      label: 'Backup & Restore',
+      href: '/settings/backup',
+      icon: FiDatabase,
+      description: 'Data management',
+      disabled: true
+    },
+    {
+      id: 'security',
+      label: 'Security',
+      href: '/settings/security',
       icon: FiShield,
-      description: 'Role management'
-    },
-    {
-      id: 'activity',
-      label: 'Activity Logs',
-      href: '/admin/activity',
-      icon: FiActivity,
-      description: 'View activity logs',
+      description: 'Authentication settings',
       disabled: true
     }
   ]
 
   const isActive = (href) => {
-    if (href === '/admin') {
-      return pathname === '/admin'
-    }
-    return pathname.startsWith(href)
+    return pathname === href || pathname.startsWith(href + '/')
   }
 
   return (
-    <ResizableSidebar storageKey="adminSidebarWidth">
+    <ResizableSidebar storageKey="settingsSidebarWidth">
       {({ isCollapsed }) => (
         <>
+          {/* Header */}
+          {!isCollapsed && (
+            <div className="px-4 py-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Settings</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Customize your application</p>
+            </div>
+          )}
+
           {/* Navigation Items */}
           <nav className="flex-1 overflow-y-auto p-2 pt-4">
             <ul className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.href)
-                
-                if (item.disabled) {
+                const disabled = item.disabled
+
+                if (disabled) {
                   return (
                     <li key={item.id}>
                       <div
@@ -103,7 +120,10 @@ const AdminSidebar = () => {
                     >
                       <Icon size={18} className="flex-shrink-0" />
                       {!isCollapsed && (
-                        <span className="truncate text-sm">{item.label}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate text-sm">{item.label}</span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{item.description}</span>
+                        </div>
                       )}
                     </Link>
                   </li>
@@ -111,25 +131,11 @@ const AdminSidebar = () => {
               })}
             </ul>
           </nav>
-
-          {/* Sidebar Footer */}
-          {!isCollapsed && (
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-3">
-                <p className="text-xs font-medium text-primary-900 dark:text-primary-400 mb-1">
-                  Admin Access
-                </p>
-                <p className="text-xs text-primary-700 dark:text-primary-500">
-                  Full system control
-                </p>
-              </div>
-            </div>
-          )}
         </>
       )}
     </ResizableSidebar>
   )
 }
 
-export default AdminSidebar
+export default SettingsSidebar
 

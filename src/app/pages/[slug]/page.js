@@ -5,10 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import MainLayout from '@/components/layout/MainLayout'
+import ContentHeader from '@/components/common/ContentHeader'
 import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch, FiFilter, FiFileText } from 'react-icons/fi'
 import api from '@/lib/api'
 import { format } from 'date-fns'
@@ -147,71 +147,61 @@ export default function PageListingPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <MainLayout
+      pageTitle={page.title}
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: page?.title || 'Loading...' }
-          ]} 
+          ]}
+          actions={
+            <Button onClick={() => router.push(`/pages/${params.slug}/new`)}>
+              <FiPlus className="mr-2" />
+              New Entry
+            </Button>
+          }
         />
         
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{page.title}</h1>
-          {page.description && (
-            <p className="text-gray-600">{page.description}</p>
-          )}
-        </div>
-
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Actions */}
         <Card className="mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex-1 w-full sm:max-w-md">
               <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder={`Search ${page.title.toLowerCase()}...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex-1 sm:flex-none"
-              >
-                <FiFilter className="mr-2" />
-                Filters
-              </Button>
-              
-              {page.forms && page.forms.length > 0 && (
-                <Button
-                  onClick={() => router.push(`/pages/${params.slug}/new`)}
-                  className="flex-1 sm:flex-none"
-                >
-                  <FiPlus className="mr-2" />
-                  New Entry
-                </Button>
-              )}
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <FiFilter className="mr-2" />
+              Filters
+            </Button>
           </div>
 
           {/* Filters */}
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Status
                 </label>
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
                 >
                   <option value="">All Status</option>
                   <option value="draft">Draft</option>
@@ -221,7 +211,7 @@ export default function PageListingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Sort By
                 </label>
                 <select
@@ -230,7 +220,7 @@ export default function PageListingPage() {
                     const [sortBy, sortOrder] = e.target.value.split('-')
                     setFilters({ ...filters, sortBy, sortOrder })
                   }}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
                 >
                   <option value="createdAt-desc">Newest First</option>
                   <option value="createdAt-asc">Oldest First</option>
@@ -247,11 +237,11 @@ export default function PageListingPage() {
         {entries.length === 0 ? (
           <Card>
             <div className="text-center py-12">
-              <FiFileText className="mx-auto text-gray-400 mb-4" size={48} />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FiFileText className="mx-auto text-gray-400 dark:text-gray-500 mb-4" size={48} />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                 No entries yet
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Get started by creating your first entry
               </p>
               {page.forms && page.forms.length > 0 && (
@@ -270,10 +260,10 @@ export default function PageListingPage() {
                 <Card key={entry.id} className="hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                         {entry.title || 'Untitled Entry'}
                       </h3>
-                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400 mb-3">
                         {form && (
                           <span className="flex items-center">
                             <FiFileText className="mr-1" />
@@ -294,7 +284,7 @@ export default function PageListingPage() {
                         </span>
                       </div>
                       {entry.description && (
-                        <p className="text-gray-600 text-sm line-clamp-2">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
                           {entry.description}
                         </p>
                       )}
@@ -347,6 +337,7 @@ export default function PageListingPage() {
             })}
           </div>
         )}
+        </div>
       </div>
     </MainLayout>
   )

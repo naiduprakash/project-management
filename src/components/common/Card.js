@@ -4,7 +4,7 @@ const Card = ({ children, className, padding = true, hover = false, ...props }) 
   return (
     <div
       className={cn(
-        'bg-white rounded-lg shadow-sm border border-gray-200',
+        'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700',
         padding && 'p-6',
         hover && 'hover:shadow-md transition-shadow',
         className

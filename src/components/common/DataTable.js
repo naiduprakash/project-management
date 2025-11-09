@@ -126,20 +126,6 @@ const DataTable = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
-          {description && <p className="text-gray-600">{description}</p>}
-        </div>
-        {onAdd && (
-          <Button onClick={onAdd}>
-            <FiPlus className="mr-2" />
-            {addButtonText}
-          </Button>
-        )}
-      </div>
-
       {/* Search and Filters */}
       <Card>
         <div className="space-y-4">
@@ -147,27 +133,35 @@ const DataTable = ({
             {/* Search */}
             <div className="flex-1 w-full sm:max-w-md">
               <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder={searchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Add New Button */}
+              {onAdd && (
+                <Button onClick={onAdd}>
+                  <FiPlus className="mr-2" />
+                  {addButtonText}
+                </Button>
+              )}
+              
               {/* View Toggle */}
               {enableViewToggle && renderCard && columns.length > 0 && (
-                <div className="flex items-center border border-gray-300 rounded-md">
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
                   <button
                     onClick={() => setCurrentView('list')}
                     className={`px-3 py-2 rounded-l-md transition-colors ${
                       currentView === 'list'
                         ? 'bg-primary-600 text-white'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                     title="List View"
                   >
@@ -178,7 +172,7 @@ const DataTable = ({
                     className={`px-3 py-2 rounded-r-md transition-colors ${
                       currentView === 'grid'
                         ? 'bg-primary-600 text-white'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                     title="Grid View"
                   >
@@ -196,7 +190,7 @@ const DataTable = ({
                   <FiFilter className="mr-2" />
                   Filters
                   {Object.keys(filterValues).length > 0 && (
-                    <span className="ml-2 px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">
+                    <span className="ml-2 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-full text-xs">
                       {Object.keys(filterValues).filter(k => filterValues[k] && filterValues[k] !== 'all').length}
                     </span>
                   )}
@@ -207,17 +201,17 @@ const DataTable = ({
 
           {/* Filter Options */}
           {showFilters && filters.length > 0 && (
-            <div className="pt-4 border-t border-gray-200">
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filters.map(filter => (
                   <div key={filter.key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       {filter.label}
                     </label>
                     <select
                       value={filterValues[filter.key] || 'all'}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
                     >
                       <option value="all">All {filter.label}</option>
                       {filter.options.map(option => (
@@ -246,7 +240,7 @@ const DataTable = ({
       {sortedData.length === 0 ? (
         <Card>
           <div className="text-center py-12">
-            <p className="text-gray-600 mb-4">{emptyMessage}</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{emptyMessage}</p>
             {onEmptyAction && (
               <Button onClick={onEmptyAction}>
                 <FiPlus className="mr-2" />
@@ -268,8 +262,8 @@ const DataTable = ({
         // List/Table View
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                   {columns.map((column, index) => {
                     const isSortable = column.sortKey || column.accessor
@@ -281,10 +275,10 @@ const DataTable = ({
                     return (
                       <th
                         key={index}
-                        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider relative ${
+                        className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative ${
                           align === 'right' ? 'text-right' : 
                           align === 'center' ? 'text-center' : 'text-left'
-                        } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 transition-colors' : ''}`}
+                        } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors' : ''}`}
                         onClick={() => isSortable && handleSort(sortKey)}
                         onMouseEnter={() => setHoveredColumn(index)}
                         onMouseLeave={() => setHoveredColumn(null)}
@@ -299,8 +293,8 @@ const DataTable = ({
                               <FiChevronUp 
                                 className={`transition-colors ${
                                   isActive && sortConfig.direction === 'asc' 
-                                    ? 'text-primary-600' 
-                                    : 'text-gray-300 opacity-60'
+                                    ? 'text-primary-600 dark:text-primary-400' 
+                                    : 'text-gray-300 dark:text-gray-600 opacity-60'
                                 }`} 
                                 size={10}
                                 style={{ marginBottom: '-2px' }}
@@ -308,8 +302,8 @@ const DataTable = ({
                               <FiChevronDown 
                                 className={`transition-colors ${
                                   isActive && sortConfig.direction === 'desc' 
-                                    ? 'text-primary-600' 
-                                    : 'text-gray-300 opacity-60'
+                                    ? 'text-primary-600 dark:text-primary-400' 
+                                    : 'text-gray-300 dark:text-gray-600 opacity-60'
                                 }`} 
                                 size={10}
                                 style={{ marginTop: '-2px' }}
@@ -321,15 +315,15 @@ const DataTable = ({
                         {/* Alignment Controls - Absolutely Positioned */}
                         {isHovered && (
                           <div 
-                            className="absolute top-1/2 right-2 transform -translate-y-1/2 inline-flex items-center gap-0.5 bg-white border border-gray-200 rounded px-1 shadow-md z-10"
+                            className="absolute top-1/2 right-2 transform -translate-y-1/2 inline-flex items-center gap-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1 shadow-md z-10"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
                               onClick={(e) => handleAlignmentChange(index, 'left', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'left' 
-                                  ? 'bg-primary-100 text-primary-600' 
-                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                               }`}
                               title="Align left"
                             >
@@ -339,8 +333,8 @@ const DataTable = ({
                               onClick={(e) => handleAlignmentChange(index, 'center', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'center' 
-                                  ? 'bg-primary-100 text-primary-600' 
-                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                               }`}
                               title="Align center"
                             >
@@ -350,8 +344,8 @@ const DataTable = ({
                               onClick={(e) => handleAlignmentChange(index, 'right', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'right' 
-                                  ? 'bg-primary-100 text-primary-600' 
-                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                  ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                               }`}
                               title="Align right"
                             >
@@ -364,12 +358,12 @@ const DataTable = ({
                   })}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {sortedData.map((item, rowIndex) => (
                   <tr
                     key={item.id || rowIndex}
                     onClick={() => onRowClick && onRowClick(item)}
-                    className={onRowClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}
+                    className={onRowClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors' : ''}
                   >
                     {columns.map((column, colIndex) => {
                       const align = getColumnAlignment(column, colIndex)
@@ -380,7 +374,7 @@ const DataTable = ({
                       return (
                         <td
                           key={colIndex}
-                          className={`px-6 py-4 text-sm text-gray-900 ${column.noWrap ? 'whitespace-nowrap' : ''}`}
+                          className={`px-6 py-4 text-sm text-gray-900 dark:text-gray-100 ${column.noWrap ? 'whitespace-nowrap' : ''}`}
                         >
                           <div className={`flex ${
                             align === 'right' ? 'justify-end' : 
@@ -398,11 +392,11 @@ const DataTable = ({
           </div>
 
           {/* Results count */}
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
+          <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Showing {sortedData.length} of {data.length} {sortedData.length === 1 ? 'result' : 'results'}
               {sortConfig.key && (
-                <span className="ml-2 text-xs text-gray-500">
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-500">
                   • Sorted by {columns.find(c => (c.sortKey || c.accessor) === sortConfig.key)?.header} 
                   ({sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A'})
                 </span>

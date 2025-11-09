@@ -6,8 +6,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import MainLayout from '@/components/layout/MainLayout'
 import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer'
+import ContentHeader from '@/components/common/ContentHeader'
 import Loading from '@/components/common/Loading'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
 
 export default function EditEntryPage() {
@@ -124,32 +124,29 @@ export default function EditEntryPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <MainLayout
+      pageTitle="Edit Entry"
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: page?.title || 'Loading...', href: `/pages/${params.slug}` },
             { label: entry?.title || 'Entry', href: `/pages/${params.slug}/${params.id}` },
             { label: 'Edit' }
-          ]} 
+          ]}
         />
         
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Edit Entry
-          </h1>
-          {page?.description && (
-            <p className="text-gray-600">{page.description}</p>
-          )}
+        {/* Main Content with Form (actions at bottom) */}
+        <div className="flex-1">
+          <DynamicFormRenderer
+            form={form}
+            initialData={entry.data}
+            onSubmit={handleSubmit}
+            onSaveDraft={handleSaveDraft}
+            mode="edit"
+          />
         </div>
-
-        <DynamicFormRenderer
-          form={form}
-          initialData={entry.data}
-          onSubmit={handleSubmit}
-          onSaveDraft={handleSaveDraft}
-          mode="edit"
-        />
       </div>
     </MainLayout>
   )

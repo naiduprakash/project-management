@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import AdminLayout from '@/components/layout/AdminLayout'
+import ContentHeader from '@/components/common/ContentHeader'
 import DataTable from '@/components/common/DataTable'
 import GridCard from '@/components/common/GridCard'
 import Loading from '@/components/common/Loading'
@@ -12,9 +13,8 @@ import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
 import Avatar from '@/components/common/Avatar'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
-import { FiEdit, FiTrash2 } from 'react-icons/fi'
+import { FiEdit, FiTrash2, FiPlus } from 'react-icons/fi'
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -133,18 +133,29 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <AdminLayout
+      pageTitle="Manage Users"
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: 'Admin', href: '/admin' },
             { label: 'Users' }
-          ]} 
+          ]}
+          actions={
+            <Button onClick={() => handleOpenModal()}>
+              <FiPlus className="mr-2" />
+              New User
+            </Button>
+          }
         />
         
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         <DataTable
-          title="Manage Users"
-          description="Create and manage user accounts"
+          title={null}
+          description={null}
           data={users}
           searchPlaceholder="Search by name or email..."
           searchKeys={['name', 'email']}
@@ -156,20 +167,20 @@ export default function AdminUsersPage() {
               render: (usr) => (
                 <div className="flex items-center gap-3">
                   <Avatar name={usr.name} size="sm" />
-                  <span className="font-medium text-gray-900">{usr.name}</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{usr.name}</span>
                 </div>
               )
             },
             { 
               header: 'Email', 
               accessor: 'email',
-              render: (usr) => <span className="text-gray-600">{usr.email}</span>
+              render: (usr) => <span className="text-gray-600 dark:text-gray-400">{usr.email}</span>
             },
             {
               header: 'Role',
               accessor: 'role.displayName',
               render: (usr) => (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200">
                   {usr.role?.displayName || 'Unknown'}
                 </span>
               )
@@ -179,7 +190,9 @@ export default function AdminUsersPage() {
               accessor: 'active',
               render: (usr) => (
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  usr.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  usr.active 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                 }`}>
                   {usr.active ? 'Active' : 'Inactive'}
                 </span>
@@ -230,8 +243,6 @@ export default function AdminUsersPage() {
             }
           ]}
           
-          onAdd={() => handleOpenModal()}
-          addButtonText="New User"
           emptyMessage="No users found"
           emptyActionText="Create First User"
           onEmptyAction={() => handleOpenModal()}
@@ -352,6 +363,7 @@ export default function AdminUsersPage() {
           </div>
         </form>
         </Modal>
+        </div>
       </div>
     </AdminLayout>
   )

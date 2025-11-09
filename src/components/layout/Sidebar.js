@@ -54,7 +54,7 @@ const Sidebar = () => {
             {pages.length === 0 ? (
               <div className={`text-center ${isCollapsed ? 'px-2' : 'px-4'} py-8`}>
                 {!isCollapsed && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     No pages available yet.
                   </p>
                 )}
@@ -67,14 +67,14 @@ const Sidebar = () => {
                       href={`/pages/${page.slug}`}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all ${
                         isActive(page.slug)
-                          ? 'bg-primary-50 text-primary-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                          ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400'
                       }`}
                       title={isCollapsed ? page.title : ''}
                     >
                       <FiFileText size={18} className="flex-shrink-0" />
                       {!isCollapsed && (
-                        <span className="truncate">{page.title}</span>
+                        <span className="truncate text-sm">{page.title}</span>
                       )}
                     </Link>
                   </li>
@@ -85,8 +85,8 @@ const Sidebar = () => {
 
           {/* Sidebar Footer */}
           {!isCollapsed && pages.length > 0 && (
-            <div className="p-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500 text-center">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 {pages.length} {pages.length === 1 ? 'page' : 'pages'} available
               </p>
             </div>

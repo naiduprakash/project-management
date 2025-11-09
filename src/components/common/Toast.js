@@ -12,19 +12,19 @@ const Toast = ({ message, type = 'info', onClose }) => {
   const types = {
     success: {
       icon: FiCheckCircle,
-      className: 'bg-green-50 border-green-500 text-green-800'
+      className: 'bg-green-50 dark:bg-green-900/30 border-green-500 dark:border-green-400 text-green-800 dark:text-green-200'
     },
     error: {
       icon: FiXCircle,
-      className: 'bg-red-50 border-red-500 text-red-800'
+      className: 'bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-400 text-red-800 dark:text-red-200'
     },
     warning: {
       icon: FiAlertTriangle,
-      className: 'bg-yellow-50 border-yellow-500 text-yellow-800'
+      className: 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-500 dark:border-yellow-400 text-yellow-800 dark:text-yellow-200'
     },
     info: {
       icon: FiInfo,
-      className: 'bg-blue-50 border-blue-500 text-blue-800'
+      className: 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 text-blue-800 dark:text-blue-200'
     }
   }
 

@@ -19,7 +19,7 @@ const ToggleButton = ({
         className={cn(
           'px-4 py-2 text-sm font-semibold rounded-l-md border transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:z-10',
           value === true
-            ? 'bg-white text-gray-700 border-gray-300 z-10'
+            ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 z-10'
             : 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
@@ -33,7 +33,7 @@ const ToggleButton = ({
         className={cn(
           'px-4 py-2 text-sm font-semibold rounded-r-md border border-l-0 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:z-10',
           value === false
-            ? 'bg-white text-gray-700 border-gray-300 z-10'
+            ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 z-10'
             : 'bg-primary-500 text-white border-primary-500 hover:bg-primary-600',
           disabled && 'opacity-50 cursor-not-allowed'
         )}

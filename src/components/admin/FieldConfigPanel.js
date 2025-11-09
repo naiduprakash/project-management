@@ -80,20 +80,20 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
   const hasUnsavedChanges = () => isDirty
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl border-l border-gray-200 z-50 overflow-y-auto">
+    <div className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {isPage ? 'Page Settings' : isSection ? 'Section Settings' : 'Field Settings'}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {isPage ? 'Tab Settings' : isSection ? 'Section Settings' : 'Field Settings'}
           </h3>
-          <p className="text-sm text-gray-600 mt-0.5">
-            {isPage ? 'Configure page properties' : isSection ? 'Configure section properties' : 'Configure field properties and validation'}
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+            {isPage ? 'Configure tab properties' : isSection ? 'Configure section properties' : 'Configure field properties and validation'}
           </p>
         </div>
         <button
           onClick={handleClose}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+          className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
         >
           <FiX size={20} />
         </button>
@@ -102,36 +102,36 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
       {/* Content */}
       <div className="p-6 space-y-6">
         {isPage ? (
-          /* Page Configuration */
+          /* Tab Configuration */
           <>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Page Title <span className="text-red-500">*</span>
+                Tab Title <span className="text-red-500">*</span>
               </label>
               <Input
                 value={config.title || ''}
                 onChange={(e) => updateConfig({ title: e.target.value })}
-                placeholder="e.g., Projects, Accounting, Tasks"
+                placeholder="e.g., Basic Information, Contact Details"
                 className="w-full"
               />
               <p className="text-xs text-gray-500 mt-1">
-                This will be the name shown in the sidebar
+                Title displayed in the tab
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Page Description
+                Tab Description
               </label>
               <textarea
                 value={config.description || ''}
                 onChange={(e) => updateConfig({ description: e.target.value })}
-                placeholder="Brief description of this page"
+                placeholder="Brief description of this tab (optional)"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-gray-900"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Optional description for this page
+                Optional description for this tab
               </p>
             </div>
           </>
@@ -187,6 +187,29 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 <option value="checkbox">Checkbox</option>
                 <option value="radio">Radio</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Field Width (Column Span)
+              </label>
+              <select
+                value={config.columnSpan || 12}
+                onChange={(e) => updateConfig({ columnSpan: parseInt(e.target.value) })}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value={12}>Full Width (12/12)</option>
+                <option value={6}>Half Width (6/12)</option>
+                <option value={4}>One Third (4/12)</option>
+                <option value={3}>One Fourth (3/12)</option>
+                <option value={8}>Two Thirds (8/12)</option>
+                <option value={9}>Three Fourths (9/12)</option>
+                <option value={2}>Small (2/12)</option>
+                <option value={1}>Tiny (1/12)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Controls how much horizontal space this field takes up
+              </p>
             </div>
 
             <Input

@@ -6,9 +6,9 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import MainLayout from '@/components/layout/MainLayout'
 import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer'
+import ContentHeader from '@/components/common/ContentHeader'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import api from '@/lib/api'
 
@@ -96,27 +96,18 @@ export default function ViewEntryPage() {
   }
 
   return (
-    <MainLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <MainLayout
+      pageTitle={entry.title || 'Untitled Entry'}
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb and Actions */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: page?.title || 'Loading...', href: `/pages/${params.slug}` },
             { label: entry?.title || 'View Entry' }
-          ]} 
-        />
-        
-        <div className="mb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {entry.title || 'Untitled Entry'}
-              </h1>
-              {entry.description && (
-                <p className="text-gray-600">{entry.description}</p>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
+          ]}
+          actions={
+            <>
               <Button
                 variant="outline"
                 onClick={() => router.push(`/pages/${params.slug}/${params.id}/edit`)}
@@ -131,15 +122,18 @@ export default function ViewEntryPage() {
                 <FiTrash2 className="mr-2" />
                 Delete
               </Button>
-            </div>
-          </div>
-        </div>
-
-        <DynamicFormRenderer
-          form={form}
-          initialData={entry.data}
-          mode="view"
+            </>
+          }
         />
+        
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto">
+          <DynamicFormRenderer
+            form={form}
+            initialData={entry.data}
+            mode="view"
+          />
+        </div>
       </div>
     </MainLayout>
   )

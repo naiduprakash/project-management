@@ -5,11 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import AdminLayout from '@/components/layout/AdminLayout'
+import ContentHeader from '@/components/common/ContentHeader'
 import Card from '@/components/common/Card'
 import Loading from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import FormBuilder from '@/components/admin/FormBuilder'
 import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
 import api from '@/lib/api'
@@ -120,39 +120,19 @@ export default function EditPagePage() {
   // Removed separate FormBuilder view - now integrated inline
 
   return (
-    <AdminLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <AdminLayout
+      pageTitle={`Edit Page: ${page?.title || 'Loading...'}`}
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb and Actions */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: 'Admin', href: '/admin' },
             { label: 'Pages', href: '/admin/pages' },
             { label: page?.title || 'Edit Page' }
-          ]} 
-        />
-        
-        {/* Sticky Header with Actions */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    Edit Page: {page?.title || 'Loading...'}
-                  </h1>
-                  <button
-                    onClick={() => setShowPageConfig(true)}
-                    className="text-gray-400 hover:text-primary-600 transition-colors"
-                    title="Edit page details"
-                  >
-                    <FiEdit2 className="w-5 h-5" />
-                  </button>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {page?.description || 'Configure form structure'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
+          ]}
+          actions={
+            <>
               <Button 
                 variant="outline" 
                 onClick={() => router.push('/admin/pages')}
@@ -170,31 +150,33 @@ export default function EditPagePage() {
                 <FiSave className="mr-2" />
                 Save & Publish
               </Button>
-            </div>
+            </>
+          }
+        />
+        
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full px-4 sm:px-6 lg:px-8 py-8">
+            {/* Form Builder (Always Shown) */}
+            <FormBuilder
+              form={editingForm}
+              onSave={handleSaveForm}
+              onCancel={() => router.push('/admin/pages')}
+            />
+          {/* Page Config Panel */}
+          {showPageConfig && page && (
+            <FieldConfigPanel
+              type="page"
+              field={{
+                title: page.title,
+                description: page.description
+              }}
+              onSave={handleSavePageConfig}
+              onClose={() => setShowPageConfig(false)}
+            />
+          )}
           </div>
         </div>
-
-        {/* Form Builder (Always Shown) */}
-        <div className="pb-8">
-          <FormBuilder
-            form={editingForm}
-            onSave={handleSaveForm}
-            onCancel={() => router.push('/admin/pages')}
-          />
-        </div>
-
-        {/* Page Config Panel */}
-        {showPageConfig && page && (
-          <FieldConfigPanel
-            type="page"
-            field={{
-              title: page.title,
-              description: page.description
-            }}
-            onSave={handleSavePageConfig}
-            onClose={() => setShowPageConfig(false)}
-          />
-        )}
       </div>
     </AdminLayout>
   )

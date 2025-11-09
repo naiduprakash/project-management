@@ -3,13 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
-const ResizableSidebar = ({
+const RightResizableSidebar = ({
   children,
   minWidth = 200,
   maxWidth = 500,
   defaultWidth = 256,
   collapsedWidth = 64,
-  storageKey = 'sidebarWidth',
+  storageKey = 'rightSidebarWidth',
   className = '',
   enableCollapse = true
 }) => {
@@ -30,12 +30,14 @@ const ResizableSidebar = ({
     }
   }, [storageKey])
 
-  // Handle mouse move for resizing
+  // Handle mouse move for resizing (from right edge)
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (!isResizing) return
+      if (!isResizing || !sidebarRef.current) return
 
-      const newWidth = e.clientX
+      const rect = sidebarRef.current.getBoundingClientRect()
+      const newWidth = rect.right - e.clientX
+      
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setSidebarWidth(newWidth)
         localStorage.setItem(storageKey, newWidth.toString())
@@ -83,7 +85,7 @@ const ResizableSidebar = ({
   return (
     <aside
       ref={sidebarRef}
-      className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col relative ${className}`}
+      className={`bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col relative ${className}`}
       style={{
         width: isCollapsed ? `${collapsedWidth}px` : `${sidebarWidth}px`,
         transition: isResizing ? 'none' : 'width 0.3s ease'
@@ -96,12 +98,12 @@ const ResizableSidebar = ({
 
       {/* Resize/Collapse Handle */}
       <div
-        className={`absolute top-0 right-0 h-full transition-all duration-300 ${
+        className={`absolute top-0 left-0 h-full transition-all duration-300 ${
           isCollapsed
             ? 'w-1 cursor-pointer'
             : `w-1 cursor-col-resize ${
                 showResizeHandle || isResizing
-                  ? 'bg-gray-300 opacity-60'
+                  ? 'bg-gray-300 dark:bg-gray-600 opacity-60'
                   : 'bg-transparent opacity-0'
               }`
         }`}
@@ -115,12 +117,12 @@ const ResizableSidebar = ({
         {/* Drag/Toggle Icon */}
         {enableCollapse && (
           <div
-            className={`absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
+            className={`absolute top-1/2 left-0 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
               isCollapsed || showResizeHandle || isResizing ? 'opacity-100' : 'opacity-0'
             }`}
           >
             <div
-              className="bg-gray-400 rounded-full p-1 shadow-sm hover:bg-gray-500 hover:shadow-md transition-all duration-200 cursor-pointer"
+              className="bg-gray-400 dark:bg-gray-600 rounded-full p-1 shadow-sm hover:bg-gray-500 dark:hover:bg-gray-500 hover:shadow-md transition-all duration-200 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation()
                 handleToggleCollapse(e)
@@ -128,9 +130,9 @@ const ResizableSidebar = ({
               title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {isCollapsed ? (
-                <FiChevronRight className="text-white" size={12} />
-              ) : (
                 <FiChevronLeft className="text-white" size={12} />
+              ) : (
+                <FiChevronRight className="text-white" size={12} />
               )}
             </div>
           </div>
@@ -140,5 +142,5 @@ const ResizableSidebar = ({
   )
 }
 
-export default ResizableSidebar
+export default RightResizableSidebar
 

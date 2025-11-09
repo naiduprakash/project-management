@@ -1,9 +1,9 @@
 'use client'
 
 import Navbar from './Navbar'
-import AdminSidebar from './AdminSidebar'
+import SettingsSidebar from './SettingsSidebar'
 
-const AdminLayout = ({ 
+const SettingsLayout = ({ 
   children,
   pageTitle = null
 }) => {
@@ -14,7 +14,7 @@ const AdminLayout = ({
       />
       
       <div className="flex" style={{ height: 'calc(100vh - 4rem)' }}>
-        <AdminSidebar />
+        <SettingsSidebar />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
@@ -23,5 +23,5 @@ const AdminLayout = ({
   )
 }
 
-export default AdminLayout
+export default SettingsLayout
 

@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/context/ToastContext'
 import AdminLayout from '@/components/layout/AdminLayout'
+import ContentHeader from '@/components/common/ContentHeader'
 import DataTable from '@/components/common/DataTable'
 import GridCard from '@/components/common/GridCard'
 import Loading from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
-import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
-import { FiEdit, FiTrash2, FiShield } from 'react-icons/fi'
+import { FiEdit, FiTrash2, FiShield, FiPlus } from 'react-icons/fi'
 
 export default function AdminRolesPage() {
   const router = useRouter()
@@ -138,18 +138,29 @@ export default function AdminRolesPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Breadcrumb 
-          items={[
+    <AdminLayout
+      pageTitle="Manage Roles"
+    >
+      <div className="h-full flex flex-col">
+        {/* Content Header with Breadcrumb */}
+        <ContentHeader
+          breadcrumbItems={[
             { label: 'Admin', href: '/admin' },
             { label: 'Roles & Permissions' }
-          ]} 
+          ]}
+          actions={
+            <Button onClick={() => handleOpenModal()}>
+              <FiPlus className="mr-2" />
+              New Role
+            </Button>
+          }
         />
         
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         <DataTable
-          title="Manage Roles"
-          description="Define custom roles and permissions"
+          title={null}
+          description={null}
           data={roles}
           searchPlaceholder="Search roles..."
           searchKeys={['displayName', 'name', 'description']}
@@ -161,11 +172,11 @@ export default function AdminRolesPage() {
               accessor: 'displayName',
               render: (role) => (
                 <div className="flex items-center gap-2">
-                  <FiShield className="text-primary-600" />
+                  <FiShield className="text-primary-600 dark:text-primary-400" />
                   <div>
-                    <p className="font-medium text-gray-900">{role.displayName}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{role.displayName}</p>
                     {role.isDefault && (
-                      <span className="text-xs text-gray-500">(Default Role)</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">(Default Role)</span>
                     )}
                   </div>
                 </div>
@@ -175,7 +186,7 @@ export default function AdminRolesPage() {
               header: 'Description',
               accessor: 'description',
               render: (role) => (
-                <p className="text-sm text-gray-600">{role.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{role.description}</p>
               )
             },
             {
@@ -184,12 +195,12 @@ export default function AdminRolesPage() {
               render: (role) => (
                 <div className="flex flex-wrap gap-1">
                   {role.permissions?.slice(0, 2).map((perm, i) => (
-                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
                       {perm}
                     </span>
                   ))}
                   {role.permissions?.length > 2 && (
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
                       +{role.permissions.length - 2} more
                     </span>
                   )}
@@ -225,8 +236,6 @@ export default function AdminRolesPage() {
             }
           ]}
           
-          onAdd={() => handleOpenModal()}
-          addButtonText="New Role"
           emptyMessage="No roles yet"
           emptyActionText="Create First Role"
           onEmptyAction={() => handleOpenModal()}
@@ -356,6 +365,7 @@ export default function AdminRolesPage() {
           </div>
         </form>
         </Modal>
+        </div>
       </div>
     </AdminLayout>
   )
