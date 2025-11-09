@@ -20,15 +20,22 @@ const DynamicFormRenderer = ({
   const [currentPage, setCurrentPage] = useState(0)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  const isMultiPage = form.settings?.multiPage && form.sections.length > 1
-  const totalPages = isMultiPage ? form.sections.length : 1
+  // Support both old (sections) and new (pages) structure
+  const pages = form.pages || (form.sections ? [{ id: 'page-1', title: 'Form', sections: form.sections }] : [])
+  const isMultiPage = form.settings?.multiPage && pages.length > 1
+  const totalPages = isMultiPage ? pages.length : 1
   const isLastPage = currentPage === totalPages - 1
   const isFirstPage = currentPage === 0
 
+  // Only update formData from initialData once on mount or when switching between entries
   useEffect(() => {
-    setFormData(initialData)
-  }, [initialData])
+    if (!isInitialized || (mode === 'edit' && Object.keys(initialData).length > 0)) {
+      setFormData(initialData)
+      setIsInitialized(true)
+    }
+  }, [mode, isInitialized])
 
   const validateField = (field, value) => {
     const validation = field.validation || {}
@@ -99,12 +106,18 @@ const DynamicFormRenderer = ({
     console.log('Next button clicked, current page:', currentPage)
     
     if (isMultiPage) {
-      const currentSection = form.sections[currentPage]
-      const sectionErrors = validateSection(currentSection)
+      const currentPageData = pages[currentPage]
+      const pageErrors = {}
       
-      if (Object.keys(sectionErrors).length > 0) {
-        setErrors(sectionErrors)
-        console.log('Validation errors:', sectionErrors)
+      // Validate all sections on current page
+      currentPageData.sections.forEach(section => {
+        const sectionErrors = validateSection(section)
+        Object.assign(pageErrors, sectionErrors)
+      })
+      
+      if (Object.keys(pageErrors).length > 0) {
+        setErrors(pageErrors)
+        console.log('Validation errors:', pageErrors)
         return
       }
       
@@ -134,22 +147,13 @@ const DynamicFormRenderer = ({
     e.preventDefault()
     console.log('Form submit triggered, current page:', currentPage, 'isLastPage:', isLastPage)
     
-    // Validate current section
-    const currentSection = isMultiPage ? form.sections[currentPage] : null
-    if (currentSection) {
-      const sectionErrors = validateSection(currentSection)
-      if (Object.keys(sectionErrors).length > 0) {
-        setErrors(sectionErrors)
-        console.log('Current section validation errors:', sectionErrors)
-        return
-      }
-    }
-    
-    // Validate all sections
+    // Validate all sections across all pages
     const allErrors = {}
-    form.sections.forEach(section => {
-      const sectionErrors = validateSection(section)
-      Object.assign(allErrors, sectionErrors)
+    pages.forEach(page => {
+      page.sections.forEach(section => {
+        const sectionErrors = validateSection(section)
+        Object.assign(allErrors, sectionErrors)
+      })
     })
     
     if (Object.keys(allErrors).length > 0) {
@@ -347,16 +351,17 @@ const DynamicFormRenderer = ({
     }
   }
 
-  const sectionsToRender = isMultiPage ? [form.sections[currentPage]] : form.sections
+  const currentPageData = pages[currentPage]
+  const sectionsToRender = currentPageData?.sections || []
 
   return (
     <div>
       {/* Progress bar for multi-page forms */}
-      {isMultiPage && form.settings?.showProgressBar && (
+      {isMultiPage && (
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-700">
-              Step {currentPage + 1} of {totalPages}
+              {currentPageData?.title || `Page ${currentPage + 1}`} ({currentPage + 1} of {totalPages})
             </span>
             <span className="text-sm text-gray-600">
               {Math.round(((currentPage + 1) / totalPages) * 100)}% Complete
@@ -433,7 +438,7 @@ const DynamicFormRenderer = ({
                     </Button>
                   )}
                 </div>
-                {form.settings?.allowSaveDraft && onSaveDraft && (
+                {onSaveDraft && (
                   <Button
                     type="button"
                     variant="outline"
@@ -454,7 +459,7 @@ const DynamicFormRenderer = ({
                 >
                   Submit
                 </Button>
-                {form.settings?.allowSaveDraft && onSaveDraft && (
+                {onSaveDraft && (
                   <Button
                     type="button"
                     variant="outline"

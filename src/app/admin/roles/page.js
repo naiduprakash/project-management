@@ -11,6 +11,7 @@ import Loading from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
 import { FiEdit, FiTrash2, FiShield } from 'react-icons/fi'
 
@@ -139,6 +140,13 @@ export default function AdminRolesPage() {
   return (
     <AdminLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Roles & Permissions' }
+          ]} 
+        />
+        
         <DataTable
           title="Manage Roles"
           description="Define custom roles and permissions"
@@ -150,6 +158,7 @@ export default function AdminRolesPage() {
           columns={[
             {
               header: 'Role',
+              accessor: 'displayName',
               render: (role) => (
                 <div className="flex items-center gap-2">
                   <FiShield className="text-primary-600" />
@@ -171,6 +180,7 @@ export default function AdminRolesPage() {
             },
             {
               header: 'Permissions',
+              sortKey: 'permissions.length',
               render: (role) => (
                 <div className="flex flex-wrap gap-1">
                   {role.permissions?.slice(0, 2).map((perm, i) => (
@@ -191,7 +201,7 @@ export default function AdminRolesPage() {
               align: 'right',
               noWrap: true,
               render: (role) => (
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="ghost"

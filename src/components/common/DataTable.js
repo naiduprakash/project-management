@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Card from './Card'
 import Button from './Button'
-import { FiSearch, FiFilter, FiPlus, FiGrid, FiList } from 'react-icons/fi'
+import { FiSearch, FiFilter, FiPlus, FiGrid, FiList, FiChevronUp, FiChevronDown, FiAlignLeft, FiAlignCenter, FiAlignRight } from 'react-icons/fi'
 
 const DataTable = ({
   title,
@@ -28,6 +28,9 @@ const DataTable = ({
   const [showFilters, setShowFilters] = useState(false)
   const [filterValues, setFilterValues] = useState({})
   const [currentView, setCurrentView] = useState(defaultView)
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+  const [columnAlignments, setColumnAlignments] = useState({})
+  const [hoveredColumn, setHoveredColumn] = useState(null)
 
   // Search functionality
   const searchedData = data.filter(item => {
@@ -50,6 +53,31 @@ const DataTable = ({
     })
   })
 
+  // Sort functionality
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortConfig.key) return 0
+
+    const aValue = sortConfig.key.split('.').reduce((obj, k) => obj?.[k], a)
+    const bValue = sortConfig.key.split('.').reduce((obj, k) => obj?.[k], b)
+
+    // Handle null/undefined values
+    if (aValue == null && bValue == null) return 0
+    if (aValue == null) return 1
+    if (bValue == null) return -1
+
+    // Compare values
+    let comparison = 0
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      comparison = aValue.localeCompare(bValue)
+    } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+      comparison = aValue - bValue
+    } else {
+      comparison = String(aValue).localeCompare(String(bValue))
+    }
+
+    return sortConfig.direction === 'asc' ? comparison : -comparison
+  })
+
   const handleFilterChange = (key, value) => {
     setFilterValues(prev => ({ ...prev, [key]: value }))
   }
@@ -57,6 +85,43 @@ const DataTable = ({
   const clearFilters = () => {
     setFilterValues({})
     setSearchTerm('')
+  }
+
+  const handleSort = (columnKey) => {
+    if (!columnKey) return
+
+    setSortConfig(prevConfig => {
+      if (prevConfig.key === columnKey) {
+        // Toggle direction
+        return {
+          key: columnKey,
+          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+        }
+      }
+      // New column, default to ascending
+      return { key: columnKey, direction: 'asc' }
+    })
+  }
+
+  const handleAlignmentChange = (columnIndex, alignment, e) => {
+    e.stopPropagation()
+    setColumnAlignments(prev => ({
+      ...prev,
+      [columnIndex]: alignment
+    }))
+  }
+
+  const getColumnAlignment = (column, columnIndex) => {
+    // Check if user has set custom alignment
+    if (columnAlignments[columnIndex]) {
+      return columnAlignments[columnIndex]
+    }
+    // Use column's default align if specified
+    if (column.align) {
+      return column.align
+    }
+    // Default: left for all columns except Actions
+    return column.header === 'Actions' ? 'right' : 'left'
   }
 
   return (
@@ -178,7 +243,7 @@ const DataTable = ({
       </Card>
 
       {/* Data Display */}
-      {filteredData.length === 0 ? (
+      {sortedData.length === 0 ? (
         <Card>
           <div className="text-center py-12">
             <p className="text-gray-600 mb-4">{emptyMessage}</p>
@@ -193,7 +258,7 @@ const DataTable = ({
       ) : currentView === 'grid' && renderCard ? (
         // Grid View with Custom Cards
         <div className={`grid ${gridCols} gap-6`}>
-          {filteredData.map((item, index) => (
+          {sortedData.map((item, index) => (
             <div key={item.id || index}>
               {renderCard(item)}
             </div>
@@ -206,39 +271,126 @@ const DataTable = ({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {columns.map((column, index) => (
-                    <th
-                      key={index}
-                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                        column.align === 'right' ? 'text-right' : 
-                        column.align === 'center' ? 'text-center' : 'text-left'
-                      }`}
-                    >
-                      {column.header}
-                    </th>
-                  ))}
+                  {columns.map((column, index) => {
+                    const isSortable = column.sortKey || column.accessor
+                    const sortKey = column.sortKey || column.accessor
+                    const isActive = sortConfig.key === sortKey
+                    const align = getColumnAlignment(column, index)
+                    const isHovered = hoveredColumn === index
+                    
+                    return (
+                      <th
+                        key={index}
+                        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider relative ${
+                          align === 'right' ? 'text-right' : 
+                          align === 'center' ? 'text-center' : 'text-left'
+                        } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 transition-colors' : ''}`}
+                        onClick={() => isSortable && handleSort(sortKey)}
+                        onMouseEnter={() => setHoveredColumn(index)}
+                        onMouseLeave={() => setHoveredColumn(null)}
+                      >
+                        <div className={`inline-flex items-center gap-1 ${
+                          align === 'right' ? 'justify-end' : 
+                          align === 'center' ? 'justify-center' : 'justify-start'
+                        }`}>
+                          <span>{column.header}</span>
+                          {isSortable && (
+                            <span className="inline-flex flex-col ml-0.5" style={{ width: '10px', height: '14px' }}>
+                              <FiChevronUp 
+                                className={`transition-colors ${
+                                  isActive && sortConfig.direction === 'asc' 
+                                    ? 'text-primary-600' 
+                                    : 'text-gray-300 opacity-60'
+                                }`} 
+                                size={10}
+                                style={{ marginBottom: '-2px' }}
+                              />
+                              <FiChevronDown 
+                                className={`transition-colors ${
+                                  isActive && sortConfig.direction === 'desc' 
+                                    ? 'text-primary-600' 
+                                    : 'text-gray-300 opacity-60'
+                                }`} 
+                                size={10}
+                                style={{ marginTop: '-2px' }}
+                              />
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Alignment Controls - Absolutely Positioned */}
+                        {isHovered && (
+                          <div 
+                            className="absolute top-1/2 right-2 transform -translate-y-1/2 inline-flex items-center gap-0.5 bg-white border border-gray-200 rounded px-1 shadow-md z-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={(e) => handleAlignmentChange(index, 'left', e)}
+                              className={`p-0.5 rounded transition-colors ${
+                                align === 'left' 
+                                  ? 'bg-primary-100 text-primary-600' 
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                              }`}
+                              title="Align left"
+                            >
+                              <FiAlignLeft size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => handleAlignmentChange(index, 'center', e)}
+                              className={`p-0.5 rounded transition-colors ${
+                                align === 'center' 
+                                  ? 'bg-primary-100 text-primary-600' 
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                              }`}
+                              title="Align center"
+                            >
+                              <FiAlignCenter size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => handleAlignmentChange(index, 'right', e)}
+                              className={`p-0.5 rounded transition-colors ${
+                                align === 'right' 
+                                  ? 'bg-primary-100 text-primary-600' 
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                              }`}
+                              title="Align right"
+                            >
+                              <FiAlignRight size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredData.map((item, rowIndex) => (
+                {sortedData.map((item, rowIndex) => (
                   <tr
                     key={item.id || rowIndex}
                     onClick={() => onRowClick && onRowClick(item)}
                     className={onRowClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}
                   >
-                    {columns.map((column, colIndex) => (
-                      <td
-                        key={colIndex}
-                        className={`px-6 py-4 text-sm text-gray-900 ${
-                          column.align === 'right' ? 'text-right' : 
-                          column.align === 'center' ? 'text-center' : 'text-left'
-                        } ${column.noWrap ? 'whitespace-nowrap' : ''}`}
-                      >
-                        {column.render
-                          ? column.render(item)
-                          : column.accessor?.split('.').reduce((obj, key) => obj?.[key], item)}
-                      </td>
-                    ))}
+                    {columns.map((column, colIndex) => {
+                      const align = getColumnAlignment(column, colIndex)
+                      const content = column.render
+                        ? column.render(item)
+                        : column.accessor?.split('.').reduce((obj, key) => obj?.[key], item)
+                      
+                      return (
+                        <td
+                          key={colIndex}
+                          className={`px-6 py-4 text-sm text-gray-900 ${column.noWrap ? 'whitespace-nowrap' : ''}`}
+                        >
+                          <div className={`flex ${
+                            align === 'right' ? 'justify-end' : 
+                            align === 'center' ? 'justify-center' : 'justify-start'
+                          }`}>
+                            {content}
+                          </div>
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -248,7 +400,13 @@ const DataTable = ({
           {/* Results count */}
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              Showing {filteredData.length} of {data.length} {filteredData.length === 1 ? 'result' : 'results'}
+              Showing {sortedData.length} of {data.length} {sortedData.length === 1 ? 'result' : 'results'}
+              {sortConfig.key && (
+                <span className="ml-2 text-xs text-gray-500">
+                  • Sorted by {columns.find(c => (c.sortKey || c.accessor) === sortConfig.key)?.header} 
+                  ({sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A'})
+                </span>
+              )}
             </p>
           </div>
         </Card>

@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import MainLayout from '@/components/layout/MainLayout'
 import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer'
 import Loading from '@/components/common/Loading'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
 
 export default function NewEntryPage() {
@@ -67,9 +68,11 @@ export default function NewEntryPage() {
       
       await api.post('/projects', entryData)
       success('Entry created successfully!')
-      router.push(`/pages/${params.slug}`)
+      // Use replace and add timestamp to force reload
+      router.push(`/pages/${params.slug}?refresh=${Date.now()}`)
     } catch (err) {
       showError('Failed to create entry')
+      console.error('Submit error:', err)
     }
   }
 
@@ -86,9 +89,11 @@ export default function NewEntryPage() {
       
       await api.post('/projects', entryData)
       success('Draft saved successfully!')
-      router.push(`/pages/${params.slug}`)
+      // Use replace and add timestamp to force reload
+      router.push(`/pages/${params.slug}?refresh=${Date.now()}`)
     } catch (err) {
       showError('Failed to save draft')
+      console.error('Draft error:', err)
     }
   }
 
@@ -107,13 +112,14 @@ export default function NewEntryPage() {
   return (
     <MainLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: page?.title || 'Loading...', href: `/pages/${params.slug}` },
+            { label: 'Create New Entry' }
+          ]} 
+        />
+        
         <div className="mb-6">
-          <button
-            onClick={() => router.push(`/pages/${params.slug}`)}
-            className="text-primary-600 hover:text-primary-700 mb-4 inline-flex items-center"
-          >
-            ← Back to {page.title}
-          </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Create New {page.title} Entry
           </h1>

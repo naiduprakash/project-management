@@ -8,6 +8,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import Card from '@/components/common/Card'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiSearch, FiFilter, FiFileText } from 'react-icons/fi'
 import api from '@/lib/api'
 import { format } from 'date-fns'
@@ -31,9 +32,10 @@ export default function PageListingPage() {
 
   useEffect(() => {
     if (params.slug) {
+      console.log('Loading data for slug:', params.slug)
       loadData()
     }
-  }, [params.slug, filters])
+  }, [params.slug, filters, searchTerm])
 
   const loadData = async () => {
     try {
@@ -49,7 +51,7 @@ export default function PageListingPage() {
         return
       }
       
-      if (!currentPage.isPublished) {
+      if (!currentPage.isPublished && !currentPage.published) {
         showError('This page is not available')
         router.push('/')
         return
@@ -59,16 +61,27 @@ export default function PageListingPage() {
       
       // Load entries for this page
       const entriesResponse = await api.get('/projects')
+      console.log('All entries response:', entriesResponse.data)
+      console.log('Current page forms:', currentPage.forms)
+      
+      // Get the projects array from the response
+      const allProjects = entriesResponse.data.projects || entriesResponse.data || []
+      console.log('All projects array:', allProjects)
       
       // Filter entries by page
-      let filteredEntries = entriesResponse.data.filter(entry => {
+      let filteredEntries = allProjects.filter(entry => {
         // Find if any form in this page matches the entry's form
-        return currentPage.forms?.some(form => form.id === entry.formId)
+        const matches = currentPage.forms?.some(form => form.id === entry.formId)
+        console.log(`Entry ${entry.id} (formId: ${entry.formId}) matches:`, matches)
+        return matches
       })
+      
+      console.log('Filtered entries by page:', filteredEntries.length)
       
       // Apply filters
       if (filters.status) {
         filteredEntries = filteredEntries.filter(entry => entry.status === filters.status)
+        console.log('After status filter:', filteredEntries.length)
       }
       
       // Apply search
@@ -79,6 +92,7 @@ export default function PageListingPage() {
             String(val).toLowerCase().includes(searchTerm.toLowerCase())
           )
         )
+        console.log('After search filter:', filteredEntries.length)
       }
       
       // Apply sorting
@@ -93,6 +107,8 @@ export default function PageListingPage() {
         }
       })
       
+      console.log('Final entries to display:', filteredEntries)
+      console.log('Sample entry structure:', filteredEntries[0])
       setEntries(filteredEntries)
     } catch (err) {
       console.error('Error loading data:', err)
@@ -133,6 +149,12 @@ export default function PageListingPage() {
   return (
     <MainLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: page?.title || 'Loading...' }
+          ]} 
+        />
+        
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{page.title}</h1>
@@ -282,7 +304,14 @@ export default function PageListingPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/pages/${params.slug}/${entry.id}`)}
+                        onClick={() => {
+                          console.log('View clicked for entry:', entry)
+                          if (entry.id) {
+                            router.push(`/pages/${params.slug}/${entry.id}`)
+                          } else {
+                            showError('Entry ID not found')
+                          }
+                        }}
                         title="View"
                       >
                         <FiEye />
@@ -290,7 +319,14 @@ export default function PageListingPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/pages/${params.slug}/${entry.id}/edit`)}
+                        onClick={() => {
+                          console.log('Edit clicked for entry:', entry)
+                          if (entry.id) {
+                            router.push(`/pages/${params.slug}/${entry.id}/edit`)
+                          } else {
+                            showError('Entry ID not found')
+                          }
+                        }}
                         title="Edit"
                       >
                         <FiEdit2 />

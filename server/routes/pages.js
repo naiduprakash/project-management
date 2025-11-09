@@ -31,7 +31,10 @@ router.get('/', authenticate, async (req, res) => {
         const forms = await dal.findAll('forms', { pageId: page.id });
         // Generate slug from title if not exists
         const slug = page.slug || page.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        return { ...page, slug, forms };
+        // Ensure both published and isPublished fields exist for backward compatibility
+        const published = page.published !== undefined ? page.published : page.isPublished;
+        const isPublished = page.isPublished !== undefined ? page.isPublished : page.published;
+        return { ...page, slug, forms, published, isPublished };
       })
     );
 
@@ -60,8 +63,12 @@ router.get('/:id', authenticate, async (req, res) => {
     
     // Generate slug if not exists
     const slug = page.slug || page.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    
+    // Ensure both published and isPublished fields exist for backward compatibility
+    const published = page.published !== undefined ? page.published : page.isPublished;
+    const isPublished = page.isPublished !== undefined ? page.isPublished : page.published;
 
-    res.json({ ...page, slug, forms });
+    res.json({ ...page, slug, forms, published, isPublished });
   } catch (error) {
     console.error('Get page error:', error);
     res.status(500).json({ error: 'Failed to get page' });

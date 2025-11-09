@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
-import FormSectionNav from '@/components/admin/FormSectionNav'
-import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiCopy, FiFile, FiChevronRight } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiCopy, FiFile } from 'react-icons/fi'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
@@ -16,14 +15,14 @@ import { v4 as uuidv4 } from 'uuid'
 const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const formToEdit = form || initialData
   
-  const createFirstPage = (pageTitle = '', pageDescription = '') => ({
+  const createFirstPage = () => ({
     id: uuidv4(),
     title: 'Page 1',
     sections: [
       {
         id: uuidv4(),
         title: 'Basic Information',
-        description: 'General details',
+        description: '',
         fields: [
           {
             id: uuidv4(),
@@ -44,31 +43,6 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             rows: 3
           }
         ]
-      },
-      {
-        id: uuidv4(),
-        title: 'Entry Details',
-        description: 'Information for each entry',
-        fields: [
-          {
-            id: uuidv4(),
-            name: 'title',
-            label: 'Entry Title',
-            type: 'text',
-            required: true,
-            placeholder: 'Enter title',
-            validation: { required: true, message: 'Title is required' }
-          },
-          {
-            id: uuidv4(),
-            name: 'description',
-            label: 'Entry Description',
-            type: 'textarea',
-            required: false,
-            placeholder: 'Enter description',
-            rows: 3
-          }
-        ]
       }
     ]
   })
@@ -77,18 +51,16 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     title: '',
     description: '',
     pages: [createFirstPage()],
-    published: false, // Draft by default
     settings: {
-      multiPage: false
+      multiPage: false,
+      showProgressBar: true,
+      allowSaveDraft: true
     }
   })
   
   const [currentPageIndex, setCurrentPageIndex] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [collapsedSections, setCollapsedSections] = useState({})
-  const [sectionStatus, setSectionStatus] = useState({})
-  const [activeSectionId, setActiveSectionId] = useState(null)
-  const sectionRefs = useRef({})
+  const [expandedSections, setExpandedSections] = useState({})
 
   useEffect(() => {
     console.log('FormBuilder received form data:', formToEdit)
@@ -112,9 +84,10 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           title: formToEdit.title || '',
           description: formToEdit.description || '',
           pages: pages.length > 0 ? pages : [firstPage],
-          published: formToEdit.published || false,
           settings: formToEdit.settings || {
-            multiPage: false
+            multiPage: false,
+            showProgressBar: true,
+            allowSaveDraft: true
           }
         })
       } else {
@@ -123,15 +96,23 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           title: formToEdit.title || '',
           description: formToEdit.description || '',
           pages: formToEdit.pages || [createFirstPage()],
-          published: formToEdit.published || false,
           settings: formToEdit.settings || {
-            multiPage: false
+            multiPage: false,
+            showProgressBar: true,
+            allowSaveDraft: true
           }
         })
       }
       
-      // All sections expanded by default (collapsed state is empty)
+      // Expand all sections
+      const expanded = {}
       const pages = formToEdit.pages || [createFirstPage()]
+      pages.forEach(page => {
+        page.sections?.forEach(section => {
+          expanded[section.id] = true
+        })
+      })
+      setExpandedSections(expanded)
     } else {
       // New form
       const firstPage = createFirstPage()
@@ -139,13 +120,15 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         title: '',
         description: '',
         pages: [firstPage],
-        published: false,
         settings: {
-          multiPage: false
+          multiPage: false,
+          showProgressBar: true,
+          allowSaveDraft: true
         }
       })
       
-      // All sections expanded by default
+      // Expand first section
+      setExpandedSections({ [firstPage.sections[0].id]: true })
     }
   }, [formToEdit])
 
@@ -169,7 +152,10 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     })
     
     setCurrentPageIndex(formData.pages.length)
-    // New sections are expanded by default
+    setExpandedSections({
+      ...expandedSections,
+      [newPage.sections[0].id]: true
+    })
   }
 
   const handleDeletePage = (pageIndex) => {
@@ -220,13 +206,17 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     }
     
     setFormData({ ...formData, pages: updatedPages })
-    // New sections are expanded by default
+    setExpandedSections({ ...expandedSections, [newSection.id]: true })
   }
 
   const handleDeleteSection = (pageIndex, sectionIndex) => {
-    const section = formData.pages[pageIndex].sections[sectionIndex]
+    // Don't allow deleting the first section of the first page (has title/description)
+    if (pageIndex === 0 && sectionIndex === 0) {
+      alert('Cannot delete the basic information section')
+      return
+    }
     
-    if (!confirm(`Delete section "${section.title}" and all its fields?`)) return
+    if (!confirm('Delete this section and all its fields?')) return
     
     const updatedPages = [...formData.pages]
     updatedPages[pageIndex] = {
@@ -286,9 +276,16 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleDeleteField = (pageIndex, sectionIndex, fieldIndex) => {
+    // Don't allow deleting title or description from first section
+    if (pageIndex === 0 && sectionIndex === 0 && fieldIndex < 2) {
+      alert('Cannot delete title or description fields')
+      return
+    }
+    
     if (!confirm('Delete this field?')) return
     
     const updatedPages = [...formData.pages]
+    const section = updatedPages[pageIndex].sections[sectionIndex]
     updatedPages[pageIndex].sections[sectionIndex] = {
       ...section,
       fields: section.fields.filter((_, i) => i !== fieldIndex)
@@ -298,8 +295,12 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleMoveField = (pageIndex, sectionIndex, fieldIndex, direction) => {
+    // Don't allow moving title or description
+    if (pageIndex === 0 && sectionIndex === 0 && fieldIndex < 2) return
+    
     const newIndex = direction === 'up' ? fieldIndex - 1 : fieldIndex + 1
     const updatedPages = [...formData.pages]
+    const section = updatedPages[pageIndex].sections[sectionIndex]
     const fields = [...section.fields]
     
     ;[fields[fieldIndex], fields[newIndex]] = [fields[newIndex], fields[fieldIndex]]
@@ -309,7 +310,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault()
+    e.preventDefault()
     
     if (!formData.title.trim()) {
       alert('Please enter a form title')
@@ -323,280 +324,170 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     
     setLoading(true)
     try {
-      await onSave({ ...formData, published: false })
+      await onSave(formData)
     } catch (err) {
       console.error('Save error:', err)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleSaveAndPublish = async (e) => {
-    e.preventDefault()
-    
-    if (!formData.title) {
-      alert('Please enter a form title')
-      return
-    }
-    
-    if (formData.pages.length === 0) {
-      alert('Form must have at least one page')
-      return
-    }
-    
-    setLoading(true)
-    try {
-      await onSave({ ...formData, published: true })
-    } catch (err) {
-      console.error('Save error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const scrollToSection = (sectionId) => {
-    const element = sectionRefs.current[sectionId]
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
-
-  // Update section status based on field validation
-  useEffect(() => {
-    const newStatus = {}
-    formData.pages.forEach(page => {
-      page.sections?.forEach(section => {
-        const hasFields = section.fields?.length > 0
-        const hasRequiredFields = section.fields?.some(f => f.required)
-        
-        if (!hasFields) {
-          newStatus[section.id] = 'empty'
-        } else if (hasRequiredFields) {
-          newStatus[section.id] = 'empty' // Has required fields (shown as empty in builder)
-        } else {
-          newStatus[section.id] = 'valid'
-        }
-      })
-    })
-    setSectionStatus(newStatus)
-  }, [formData])
-
-  // Scroll spy to track active section
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const sectionId = entry.target.getAttribute('data-section-id')
-            if (sectionId) {
-              setActiveSectionId(sectionId)
-            }
-          }
-        })
-      },
-      {
-        root: null,
-        rootMargin: '-20% 0px -70% 0px',
-        threshold: 0
-      }
-    )
-
-    Object.values(sectionRefs.current).forEach((ref) => {
-      if (ref) observer.observe(ref)
-    })
-
-    return () => {
-      Object.values(sectionRefs.current).forEach((ref) => {
-        if (ref) observer.unobserve(ref)
-      })
-    }
-  }, [formData.pages, currentPageIndex])
-
-  const toggleSection = (sectionId) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }))
   }
 
   const currentPage = formData.pages[currentPageIndex]
 
   return (
-    <div className="flex gap-6">
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0">
-        <form onSubmit={handleSubmit} id="form-builder-form">
-          {/* Hidden submit button for external trigger */}
-          <button type="submit" id="form-builder-submit" className="hidden" />
-          <button type="button" id="form-builder-publish" onClick={handleSaveAndPublish} className="hidden" />
+    <div className="max-w-6xl mx-auto">
+      <form onSubmit={handleSubmit}>
+        {/* Form Settings */}
+        <Card className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Form Settings</h2>
           
-          {/* Page Tabs */}
-          <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 flex items-center gap-2 overflow-x-auto">
-                {formData.pages.map((page, index) => (
-                  <div key={page.id} className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPageIndex(index)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                        currentPageIndex === index
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {page.title}
-                    </button>
-                    {index > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeletePage(index)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                        title="Delete page"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-4">
+            <Input
+              label="Form Title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
+              placeholder="e.g., Construction Project Form"
+            />
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Form Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Optional description for this form"
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.settings.showProgressBar}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    settings: { ...formData.settings, showProgressBar: e.target.checked }
+                  })}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Show Progress Bar</span>
+              </label>
               
-              <Button type="button" size="sm" onClick={handleAddPage} className="flex-shrink-0">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.settings.allowSaveDraft}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    settings: { ...formData.settings, allowSaveDraft: e.target.checked }
+                  })}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Allow Save Draft</span>
+              </label>
+            </div>
+          </div>
+        </Card>
+
+        {/* Page Tabs */}
+        {formData.pages.length > 1 && (
+          <Card className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Pages</h3>
+              <Button type="button" size="sm" onClick={handleAddPage}>
                 <FiPlus className="mr-1" /> Add Page
               </Button>
             </div>
-          </div>
+            
+            <div className="flex gap-2 flex-wrap">
+              {formData.pages.map((page, index) => (
+                <div key={page.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPageIndex(index)}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      currentPageIndex === index
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {page.title}
+                  </button>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePage(index)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      title="Delete page"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Current Page Content */}
         {currentPage && (
           <Card className="mb-6">
-            {/* Page Settings */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {currentPageIndex === 0 ? 'Form Settings' : 'Page Settings'}
-              </h3>
-              
-              <div className="space-y-4">
-                {/* Form Settings - Only on first page */}
-                {currentPageIndex === 0 && (
-                  <>
-                    <Input
-                      label="Form Title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      required
-                      placeholder="e.g., Construction Project Form"
-                      hint="Internal name for this form"
-                    />
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Form Description
-                      </label>
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={2}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Optional description for this form"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Brief description of what this form is for</p>
-                    </div>
-
-                    
-                    <div className="border-t border-gray-200 my-4"></div>
-                  </>
-                )}
-                
-                <Input
-                  label={currentPageIndex === 0 ? "Form Page Title" : "Page Title"}
-                  value={currentPage.title}
-                  onChange={(e) => handleUpdatePage(currentPageIndex, { title: e.target.value })}
-                  placeholder="e.g., Basic Information"
-                  hint={currentPageIndex === 0 ? "Navigation title for the first page" : `Navigation title for page ${currentPageIndex + 1}`}
-                />
-              </div>
+            <div className="flex items-center justify-between mb-6">
+              <Input
+                label="Page Title"
+                value={currentPage.title}
+                onChange={(e) => handleUpdatePage(currentPageIndex, { title: e.target.value })}
+                placeholder="e.g., Basic Information"
+              />
             </div>
 
             {/* Sections */}
             <div className="space-y-4">
               {currentPage.sections.map((section, sectionIndex) => (
-                <div 
-                  key={section.id} 
-                  ref={el => sectionRefs.current[section.id] = el}
-                  data-section-id={section.id}
-                  className="scroll-mt-24"
-                >
-                  <Card className="border-2 border-gray-200">
-                    {/* Section Header - Collapsible */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => toggleSection(section.id)}
-                        className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-md transition-colors"
-                        title={collapsedSections[section.id] ? "Expand section" : "Collapse section"}
-                      >
-                        <FiChevronRight 
-                          className={`w-5 h-5 text-gray-600 transition-transform ${
-                            collapsedSections[section.id] ? '' : 'rotate-90'
-                          }`}
-                        />
-                      </button>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {section.title}
-                          </h3>
-                          <span className="text-xs text-gray-500">
-                            ({section.fields?.length || 0} fields)
-                          </span>
-                        </div>
-                        {section.description && !collapsedSections[section.id] && (
-                          <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                        )}
-                      </div>
-                      
+                <Card key={section.id} className="border-2 border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <Input
+                      label="Section Title"
+                      value={section.title}
+                      onChange={(e) => handleUpdateSection(currentPageIndex, sectionIndex, { title: e.target.value })}
+                      placeholder="Section name"
+                    />
+                    
+                    {!(currentPageIndex === 0 && sectionIndex === 0) && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteSection(currentPageIndex, sectionIndex)}
-                        className="text-red-600 flex-shrink-0"
+                        className="text-red-600"
                       >
                         <FiTrash2 />
                       </Button>
-                    </div>
-
-                    {/* Section Content - Collapsible */}
-                    {!collapsedSections[section.id] && (
-                      <>
-                        {/* Section Title Edit (when expanded) */}
-                        <div className="mb-4">
-                          <Input
-                            label="Section Title"
-                            value={section.title}
-                            onChange={(e) => handleUpdateSection(currentPageIndex, sectionIndex, { title: e.target.value })}
-                            placeholder="Section name"
-                          />
-                        </div>
+                    )}
+                  </div>
 
                   {/* Fields */}
                   <div className="space-y-3 mb-4">
                     {section.fields.map((field, fieldIndex) => (
-                      <div key={field.id} className="p-3 rounded-md bg-gray-50">
+                      <div key={field.id} className="p-3 bg-gray-50 rounded-md">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 grid grid-cols-2 gap-3">
                             <Input
                               label="Field Label"
                               value={field.label}
                               onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { label: e.target.value })}
+                              disabled={currentPageIndex === 0 && sectionIndex === 0 && fieldIndex < 2}
                             />
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                               <select
                                 value={field.type}
                                 onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { type: e.target.value })}
+                                disabled={currentPageIndex === 0 && sectionIndex === 0 && fieldIndex < 2}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
                               >
                                 <option value="text">Text</option>
@@ -613,7 +504,9 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                           </div>
                           
                           <div className="flex gap-1 ml-2">
-                            {fieldIndex > 0 && (
+                            {!(currentPageIndex === 0 && sectionIndex === 0 && fieldIndex < 2) && (
+                              <>
+                                {fieldIndex > 2 && (
                                   <button
                                     type="button"
                                     onClick={() => handleMoveField(currentPageIndex, sectionIndex, fieldIndex, 'up')}
@@ -638,6 +531,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                                 >
                                   <FiTrash2 size={16} />
                                 </button>
+                              </>
+                            )}
                           </div>
                         </div>
                         
@@ -647,20 +542,19 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                             value={field.placeholder || ''}
                             onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { placeholder: e.target.value })}
                           />
-                          {field.type !== 'checkbox' && (
-                            <label className="flex items-center gap-2 pt-6">
-                              <input
-                                type="checkbox"
-                                checked={field.required || false}
-                                onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { 
-                                  required: e.target.checked,
-                                  validation: { ...field.validation, required: e.target.checked }
-                                })}
-                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                              />
-                              <span className="text-sm text-gray-700">Required</span>
-                            </label>
-                          )}
+                          <label className="flex items-center gap-2 pt-6">
+                            <input
+                              type="checkbox"
+                              checked={field.required || false}
+                              onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { 
+                                required: e.target.checked,
+                                validation: { ...field.validation, required: e.target.checked }
+                              })}
+                              disabled={currentPageIndex === 0 && sectionIndex === 0 && fieldIndex === 0}
+                              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-700">Required</span>
+                          </label>
                         </div>
                       </div>
                     ))}
@@ -674,10 +568,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                   >
                     <FiPlus className="mr-1" /> Add Field
                   </Button>
-                      </>
-                    )}
-                  </Card>
-                </div>
+                </Card>
               ))}
             </div>
 
@@ -691,19 +582,30 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             </Button>
           </Card>
         )}
-        </form>
-      </div>
 
-      {/* Right Sidebar - Section Navigation */}
-      <div className="w-64 flex-shrink-0">
-        <FormSectionNav
-          pages={formData.pages}
-          currentPageIndex={currentPageIndex}
-          onSectionClick={scrollToSection}
-          sectionStatus={sectionStatus}
-          activeSectionId={activeSectionId}
-        />
-      </div>
+        {/* Add Page Button (for single page) */}
+        {formData.pages.length === 1 && (
+          <Card className="mb-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddPage}
+            >
+              <FiFile className="mr-2" /> Add Page (Convert to Multi-Page Form)
+            </Button>
+          </Card>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={loading}>
+            Save Form
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }

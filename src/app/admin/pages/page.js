@@ -11,8 +11,9 @@ import Loading from '@/components/common/Loading'
 import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
-import { FiEdit, FiTrash2, FiEye, FiEyeOff, FiFileText } from 'react-icons/fi'
+import { FiEdit, FiTrash2, FiEye, FiEyeOff } from 'react-icons/fi'
 import Link from 'next/link'
 
 export default function AdminPagesPage() {
@@ -132,6 +133,13 @@ export default function AdminPagesPage() {
   return (
     <AdminLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Pages' }
+          ]} 
+        />
+        
         <DataTable
           title="Manage Pages"
           description="Create and organize pages for your forms"
@@ -143,6 +151,7 @@ export default function AdminPagesPage() {
           columns={[
             {
               header: 'Page',
+              accessor: 'title',
               render: (page) => (
                 <div>
                   <p className="font-medium text-gray-900">{page.title}</p>
@@ -163,6 +172,7 @@ export default function AdminPagesPage() {
             },
             {
               header: 'Status',
+              accessor: 'published',
               align: 'center',
               noWrap: true,
               render: (page) => (
@@ -180,7 +190,7 @@ export default function AdminPagesPage() {
               align: 'right',
               noWrap: true,
               render: (page) => (
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -192,18 +202,10 @@ export default function AdminPagesPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleOpenModal(page)}
-                    title="Edit"
+                    onClick={() => router.push(`/admin/pages/${page.id}/edit`)}
+                    title="Edit Page & Forms"
                   >
                     <FiEdit />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => router.push(`/admin/pages/${page.id}/forms`)}
-                    title="Manage Forms"
-                  >
-                    <FiFileText />
                   </Button>
                   <Button
                     size="sm"
@@ -263,13 +265,7 @@ export default function AdminPagesPage() {
                   label: 'Edit',
                   icon: FiEdit,
                   variant: 'ghost',
-                  onClick: () => handleOpenModal(page)
-                },
-                {
-                  label: 'Forms',
-                  icon: FiFileText,
-                  variant: 'ghost',
-                  onClick: () => router.push(`/admin/pages/${page.id}/forms`)
+                  onClick: () => router.push(`/admin/pages/${page.id}/edit`)
                 },
                 {
                   label: 'Delete',
@@ -281,10 +277,7 @@ export default function AdminPagesPage() {
               ]}
             >
               <div className="text-sm text-gray-600">
-                <p className="flex items-center gap-1">
-                  <FiFileText className="inline" />
-                  {page.forms?.length || 0} form(s)
-                </p>
+                <p>{page.forms?.length || 0} form(s)</p>
               </div>
             </GridCard>
           )}

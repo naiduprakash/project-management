@@ -12,6 +12,7 @@ import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
 import Avatar from '@/components/common/Avatar'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import api from '@/lib/api'
 import { FiEdit, FiTrash2 } from 'react-icons/fi'
 
@@ -134,6 +135,13 @@ export default function AdminUsersPage() {
   return (
     <AdminLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' }
+          ]} 
+        />
+        
         <DataTable
           title="Manage Users"
           description="Create and manage user accounts"
@@ -144,6 +152,7 @@ export default function AdminUsersPage() {
           columns={[
             {
               header: 'User',
+              accessor: 'name',
               render: (usr) => (
                 <div className="flex items-center gap-3">
                   <Avatar name={usr.name} size="sm" />
@@ -158,6 +167,7 @@ export default function AdminUsersPage() {
             },
             {
               header: 'Role',
+              accessor: 'role.displayName',
               render: (usr) => (
                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                   {usr.role?.displayName || 'Unknown'}
@@ -166,6 +176,7 @@ export default function AdminUsersPage() {
             },
             {
               header: 'Status',
+              accessor: 'active',
               render: (usr) => (
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   usr.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -179,7 +190,7 @@ export default function AdminUsersPage() {
               align: 'right',
               noWrap: true,
               render: (usr) => (
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="ghost"

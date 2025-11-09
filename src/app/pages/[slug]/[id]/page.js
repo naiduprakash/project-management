@@ -8,6 +8,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer'
 import Button from '@/components/common/Button'
 import Loading from '@/components/common/Loading'
+import Breadcrumb from '@/components/common/Breadcrumb'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import api from '@/lib/api'
 
@@ -32,9 +33,15 @@ export default function ViewEntryPage() {
     try {
       // Load page
       const pagesResponse = await api.get('/pages')
-      const currentPage = pagesResponse.data.find(p => p.slug === params.slug)
+      console.log('Pages response:', pagesResponse.data)
       
-      if (!currentPage || !currentPage.isPublished) {
+      // Handle both array and object response formats
+      const pagesArray = Array.isArray(pagesResponse.data) ? pagesResponse.data : (pagesResponse.data.pages || [])
+      const currentPage = pagesArray.find(p => p.slug === params.slug)
+      
+      console.log('Current page found:', currentPage)
+      
+      if (!currentPage || (!currentPage.isPublished && !currentPage.published)) {
         showError('Page not found')
         router.push('/')
         return
@@ -44,13 +51,19 @@ export default function ViewEntryPage() {
       
       // Load entry
       const entryResponse = await api.get(`/projects/${params.id}`)
-      setEntry(entryResponse.data)
+      console.log('Entry response:', entryResponse.data)
+      
+      // Handle both direct object and wrapped response
+      const entryData = entryResponse.data.project || entryResponse.data
+      setEntry(entryData)
       
       // Find the form
-      const entryForm = currentPage.forms?.find(f => f.id === entryResponse.data.formId)
+      const entryForm = currentPage.forms?.find(f => f.id === entryData.formId)
+      console.log('Form found:', entryForm)
       setForm(entryForm)
       
     } catch (err) {
+      console.error('Failed to load entry:', err)
       showError('Failed to load entry')
       router.push(`/pages/${params.slug}`)
     } finally {
@@ -85,14 +98,14 @@ export default function ViewEntryPage() {
   return (
     <MainLayout>
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <Breadcrumb 
+          items={[
+            { label: page?.title || 'Loading...', href: `/pages/${params.slug}` },
+            { label: entry?.title || 'View Entry' }
+          ]} 
+        />
+        
         <div className="mb-6">
-          <button
-            onClick={() => router.push(`/pages/${params.slug}`)}
-            className="text-primary-600 hover:text-primary-700 mb-4 inline-flex items-center"
-          >
-            ← Back to {page?.title}
-          </button>
-          
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">

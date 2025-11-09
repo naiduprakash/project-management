@@ -24,7 +24,7 @@ export default function PagesRedirectPage() {
       try {
         // Fetch all published pages
         const response = await api.get('/pages')
-        const publishedPages = response.data.filter(page => page.isPublished)
+        const publishedPages = response.data.filter(page => page.isPublished || page.published)
 
         if (publishedPages.length > 0) {
           // Redirect to the first published page

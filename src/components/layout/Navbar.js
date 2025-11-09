@@ -36,7 +36,7 @@ const Navbar = () => {
                 href="/admin"
                 className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors"
               >
-                Admin
+                Admin Panel
               </Link>
             )}
 
@@ -114,7 +114,7 @@ const Navbar = () => {
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
                 onClick={() => setShowMobileMenu(false)}
               >
-                Admin
+                Admin Panel
               </Link>
             )}
             <Link
