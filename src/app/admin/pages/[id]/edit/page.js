@@ -11,8 +11,9 @@ import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Breadcrumb from '@/components/common/Breadcrumb'
 import FormBuilder from '@/components/admin/FormBuilder'
+import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
 import api from '@/lib/api'
-import { FiArrowLeft, FiPlus, FiEdit, FiTrash2, FiSave } from 'react-icons/fi'
+import { FiArrowLeft, FiPlus, FiEdit, FiTrash2, FiSave, FiEdit2 } from 'react-icons/fi'
 
 export default function EditPagePage() {
   const router = useRouter()
@@ -24,6 +25,7 @@ export default function EditPagePage() {
   const [forms, setForms] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingForm, setEditingForm] = useState(null)
+  const [showPageConfig, setShowPageConfig] = useState(false)
 
   useEffect(() => {
     if (!authLoading) {
@@ -61,20 +63,48 @@ export default function EditPagePage() {
 
   const handleSaveForm = async (formData) => {
     try {
+      // Update page's published status based on form's published status
+      await api.put(`/pages/${params.id}`, {
+        isPublished: formData.published || false
+      })
+      
+      // Update or create form
       if (editingForm) {
         // Update existing form
         await api.put(`/forms/${editingForm.id}`, formData)
-        success('Page updated successfully')
+        success(formData.published ? 'Page published successfully' : 'Page saved as draft')
       } else {
         // Create new form for this page
         await api.post('/forms', { ...formData, pageId: params.id })
-        success('Page created successfully')
+        success(formData.published ? 'Page created and published' : 'Page created as draft')
       }
       
       // Go back to pages list after saving
       router.push('/admin/pages')
     } catch (err) {
       error(err.response?.data?.error || 'Failed to save page')
+      throw err
+    }
+  }
+
+  const handleSavePageConfig = async (updatedConfig) => {
+    try {
+      await api.put(`/pages/${params.id}`, {
+        title: updatedConfig.title,
+        description: updatedConfig.description
+      })
+      
+      // Update local page state
+      setPage(prev => ({
+        ...prev,
+        title: updatedConfig.title,
+        description: updatedConfig.description
+      }))
+      
+      success('Page details updated successfully')
+      setShowPageConfig(false)
+    } catch (err) {
+      error(err.response?.data?.error || 'Failed to update page details')
       throw err
     }
   }
@@ -103,13 +133,24 @@ export default function EditPagePage() {
         {/* Sticky Header with Actions */}
         <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-4 mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Edit Page: {page?.title || 'Loading...'}
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Configure page details and form structure
-              </p>
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    Edit Page: {page?.title || 'Loading...'}
+                  </h1>
+                  <button
+                    onClick={() => setShowPageConfig(true)}
+                    className="text-gray-400 hover:text-primary-600 transition-colors"
+                    title="Edit page details"
+                  >
+                    <FiEdit2 className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  {page?.description || 'Configure form structure'}
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <Button 
@@ -141,6 +182,19 @@ export default function EditPagePage() {
             onCancel={() => router.push('/admin/pages')}
           />
         </div>
+
+        {/* Page Config Panel */}
+        {showPageConfig && page && (
+          <FieldConfigPanel
+            type="page"
+            field={{
+              title: page.title,
+              description: page.description
+            }}
+            onSave={handleSavePageConfig}
+            onClose={() => setShowPageConfig(false)}
+          />
+        )}
       </div>
     </AdminLayout>
   )

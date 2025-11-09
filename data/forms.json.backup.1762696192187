@@ -1,0 +1,491 @@
+[
+  {
+    "id": "61b5633f-29b8-42a9-b4e6-6aa9eec626cc",
+    "title": "Construction Project Form",
+    "description": "Complete form for civil building construction project management",
+    "pageId": "3e6be570-5bee-4c7d-950e-8fff88fec35c",
+    "status": "published",
+    "createdBy": "system",
+    "createdAt": "2025-11-09T12:45:59.222Z",
+    "updatedAt": "2025-11-09T13:43:42.582Z",
+    "settings": {
+      "multiPage": true,
+      "showProgressBar": true,
+      "allowSaveDraft": true
+    },
+    "pages": [
+      {
+        "id": "13255c34-c4fb-4b6b-9102-98530cd2ddd4",
+        "title": "Project Information",
+        "sections": [
+          {
+            "id": "493bce38-758e-4cfc-b747-66e437d640b9",
+            "title": "Page Details",
+            "description": "Basic information about this page (cannot be deleted)",
+            "isPageDetails": true,
+            "fields": [
+              {
+                "id": "e82336a6-a3b2-4ac3-8b47-58f10fa4fa42",
+                "name": "pageTitle",
+                "label": "Page Title",
+                "type": "text",
+                "required": true,
+                "placeholder": "e.g., Projects",
+                "validation": {
+                  "required": true,
+                  "message": "Page title is required"
+                },
+                "hint": "This will be the name shown in the sidebar"
+              },
+              {
+                "id": "e5536b19-0bdc-442b-b37b-2fd71b824391",
+                "name": "pageDescription",
+                "label": "Page Description",
+                "type": "textarea",
+                "required": false,
+                "placeholder": "Brief description of this page",
+                "rows": 2,
+                "hint": "Optional description for this page"
+              },
+              {
+                "id": "8f774bf0-00eb-4e3e-bbc2-72f3e61794db",
+                "name": "pagePublished",
+                "label": "Published",
+                "type": "checkbox",
+                "required": false,
+                "hint": "Make this page visible to users"
+              }
+            ]
+          },
+          {
+            "id": "5b9c5688-af92-445c-8b73-1bdde75860fe",
+            "title": "Entry Details",
+            "description": "Essential project details",
+            "fields": [
+              {
+                "id": "6a60ff89-ddc1-4f17-b67e-94d91e19c6af",
+                "name": "title",
+                "label": "Entry Title",
+                "type": "text",
+                "placeholder": "Enter project title",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "minLength": 3,
+                  "maxLength": 100,
+                  "message": "Project title is required (3-100 characters)"
+                }
+              },
+              {
+                "id": "3323ec6c-dba3-4f04-b04d-4fdc174d0294",
+                "name": "description",
+                "label": "Entry Description",
+                "type": "textarea",
+                "placeholder": "Provide a detailed description",
+                "rows": 3,
+                "required": false
+              },
+              {
+                "id": "dd06c2e2-70ea-437c-be19-b8912366f78b",
+                "name": "projectType",
+                "label": "Project Type",
+                "type": "select",
+                "required": true,
+                "options": [
+                  {
+                    "value": "residential",
+                    "label": "Residential Building"
+                  },
+                  {
+                    "value": "commercial",
+                    "label": "Commercial Building"
+                  },
+                  {
+                    "value": "industrial",
+                    "label": "Industrial Facility"
+                  },
+                  {
+                    "value": "infrastructure",
+                    "label": "Infrastructure"
+                  },
+                  {
+                    "value": "renovation",
+                    "label": "Renovation/Remodeling"
+                  }
+                ],
+                "validation": {
+                  "required": true,
+                  "message": "Please select a project type"
+                }
+              },
+              {
+                "id": "16c68b22-2beb-436b-aa20-76131bf839fb",
+                "name": "projectCode",
+                "label": "Project Code",
+                "type": "text",
+                "placeholder": "e.g., PRJ-2024-001",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "pattern": "^[A-Z]{3}-[0-9]{4}-[0-9]{3}$",
+                  "message": "Format must be XXX-YYYY-NNN (e.g., PRJ-2024-001)"
+                },
+                "hint": "Format: XXX-YYYY-NNN (e.g., PRJ-2024-001)"
+              }
+            ]
+          },
+          {
+            "id": "509217ef-ffa7-4ebf-8578-118798b4e94f",
+            "title": "Location & Budget",
+            "description": "Project location and financial details",
+            "fields": [
+              {
+                "id": "25bc6e98-4994-48b2-9939-e2adbb7a94d1",
+                "name": "location",
+                "label": "Project Location",
+                "type": "text",
+                "placeholder": "Enter complete address",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "message": "Location is required"
+                }
+              },
+              {
+                "id": "0cc448b8-ade8-4571-a2a3-e7c8e25d9141",
+                "name": "city",
+                "label": "City",
+                "type": "text",
+                "placeholder": "City name",
+                "required": true,
+                "validation": {
+                  "required": true
+                }
+              },
+              {
+                "id": "e8c7a719-2ac5-47f3-bb86-a291c8a81c20",
+                "name": "state",
+                "label": "State/Province",
+                "type": "text",
+                "placeholder": "State or Province",
+                "required": true,
+                "validation": {
+                  "required": true
+                }
+              },
+              {
+                "id": "dcc81492-ced9-4156-a1b4-d8190637001e",
+                "name": "zipCode",
+                "label": "ZIP/Postal Code",
+                "type": "text",
+                "placeholder": "00000",
+                "required": false
+              },
+              {
+                "id": "b9351f11-2158-454e-b0f9-4bb4eeb9c029",
+                "name": "estimatedBudget",
+                "label": "Estimated Budget (USD)",
+                "type": "number",
+                "placeholder": "0.00",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "min": 1000,
+                  "message": "Budget must be at least $1,000"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "8678b627-1fca-4ff6-9dac-d650cf7147bb",
+        "title": "Timeline & Resources",
+        "sections": [
+          {
+            "id": "d92cd3a3-8a3a-4285-b400-2d5539b06333",
+            "title": "Project Schedule",
+            "description": "Timeline and important dates",
+            "fields": [
+              {
+                "id": "f4c38d24-d13b-4681-a196-2d0dde14f753",
+                "name": "startDate",
+                "label": "Project Start Date",
+                "type": "date",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "message": "Start date is required"
+                }
+              },
+              {
+                "id": "1613029d-f866-4c11-bad8-f8959d3d2acc",
+                "name": "estimatedEndDate",
+                "label": "Estimated Completion Date",
+                "type": "date",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "message": "Completion date is required"
+                }
+              },
+              {
+                "id": "cf9da366-513b-4255-b768-8526b61eb7b7",
+                "name": "duration",
+                "label": "Estimated Duration (Days)",
+                "type": "number",
+                "placeholder": "Number of days",
+                "required": false,
+                "validation": {
+                  "min": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "2aa360b2-f55a-4c53-af98-b2f30344f9f8",
+            "title": "Team & Resources",
+            "description": "Project team and resource allocation",
+            "fields": [
+              {
+                "id": "86e883a8-e026-44fa-87e9-590806e439a3",
+                "name": "projectManager",
+                "label": "Project Manager",
+                "type": "text",
+                "placeholder": "Enter PM name",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "message": "Project Manager is required"
+                }
+              },
+              {
+                "id": "3445240f-a961-45d2-a700-4b86ddf7b145",
+                "name": "projectManagerEmail",
+                "label": "PM Email",
+                "type": "email",
+                "placeholder": "pm@example.com",
+                "required": true,
+                "validation": {
+                  "required": true
+                }
+              },
+              {
+                "id": "2fb97952-e453-44bc-94a7-e41816d3b02c",
+                "name": "architectFirm",
+                "label": "Architect Firm",
+                "type": "text",
+                "placeholder": "Enter architect firm name",
+                "required": false
+              },
+              {
+                "id": "ee38036f-d38d-430e-88ac-d4831f614c3d",
+                "name": "contractor",
+                "label": "Main Contractor",
+                "type": "text",
+                "placeholder": "Enter contractor name",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "message": "Main contractor is required"
+                }
+              },
+              {
+                "id": "9911972f-685e-485a-80e0-d78a6ef77632",
+                "name": "contractorPhone",
+                "label": "Contractor Phone",
+                "type": "tel",
+                "placeholder": "+1 (555) 000-0000",
+                "required": false
+              },
+              {
+                "id": "e6e92dfa-888f-4fed-9588-062512608f3f",
+                "name": "workforceSize",
+                "label": "Estimated Workforce Size",
+                "type": "number",
+                "placeholder": "Number of workers",
+                "required": false,
+                "validation": {
+                  "min": 1,
+                  "max": 10000
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "9194dbf4-bbef-4c49-b0f1-dcd20e709cf1",
+        "title": "Technical Specifications",
+        "sections": [
+          {
+            "id": "7579d47b-b779-4646-a20e-f686578fe523",
+            "title": "Building Details",
+            "description": "Technical specifications and requirements",
+            "fields": [
+              {
+                "id": "b0fe342c-5808-4a4c-8110-da79838be7c1",
+                "name": "buildingArea",
+                "label": "Total Building Area (sq ft)",
+                "type": "number",
+                "placeholder": "0",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "min": 100,
+                  "message": "Building area must be at least 100 sq ft"
+                }
+              },
+              {
+                "id": "dc235c3a-962e-4afa-a9d5-f92d1d113071",
+                "name": "numberOfFloors",
+                "label": "Number of Floors",
+                "type": "number",
+                "placeholder": "0",
+                "required": true,
+                "validation": {
+                  "required": true,
+                  "min": 1,
+                  "max": 200,
+                  "message": "Number of floors must be between 1 and 200"
+                }
+              },
+              {
+                "id": "aa6c0f10-3e30-45dd-8d2e-f3ccffe7f75f",
+                "name": "foundationType",
+                "label": "Foundation Type",
+                "type": "select",
+                "required": true,
+                "options": [
+                  {
+                    "value": "shallow",
+                    "label": "Shallow Foundation"
+                  },
+                  {
+                    "value": "deep_pile",
+                    "label": "Deep Pile Foundation"
+                  },
+                  {
+                    "value": "mat",
+                    "label": "Mat Foundation"
+                  },
+                  {
+                    "value": "raft",
+                    "label": "Raft Foundation"
+                  }
+                ],
+                "validation": {
+                  "required": true,
+                  "message": "Foundation type is required"
+                }
+              },
+              {
+                "id": "70f9add8-a326-4cd5-b7a7-3a0060971b2f",
+                "name": "structuralSystem",
+                "label": "Structural System",
+                "type": "select",
+                "required": true,
+                "searchable": true,
+                "options": [
+                  {
+                    "value": "rcc_frame",
+                    "label": "RCC Frame Structure"
+                  },
+                  {
+                    "value": "steel_frame",
+                    "label": "Steel Frame Structure"
+                  },
+                  {
+                    "value": "load_bearing",
+                    "label": "Load Bearing Wall"
+                  },
+                  {
+                    "value": "composite",
+                    "label": "Composite Structure"
+                  },
+                  {
+                    "value": "precast",
+                    "label": "Precast Concrete"
+                  }
+                ],
+                "validation": {
+                  "required": true,
+                  "message": "Structural system is required"
+                }
+              }
+            ]
+          },
+          {
+            "id": "794fe65a-d637-43dc-b543-080ece3e49ab",
+            "title": "Compliance & Certifications",
+            "description": "Regulatory and environmental requirements",
+            "fields": [
+              {
+                "id": "cf789679-d52f-4cf0-be23-070ec39e7542",
+                "name": "buildingCodes",
+                "label": "Building Codes Compliance",
+                "type": "textarea",
+                "placeholder": "List applicable building codes",
+                "rows": 3,
+                "required": false
+              },
+              {
+                "id": "4cd82222-1738-44c5-8b37-978c6db2391f",
+                "name": "environmentalCertification",
+                "label": "Environmental Certification",
+                "type": "select",
+                "required": false,
+                "options": [
+                  {
+                    "value": "none",
+                    "label": "None"
+                  },
+                  {
+                    "value": "leed",
+                    "label": "LEED Certified"
+                  },
+                  {
+                    "value": "breeam",
+                    "label": "BREEAM"
+                  },
+                  {
+                    "value": "green_globes",
+                    "label": "Green Globes"
+                  },
+                  {
+                    "value": "energy_star",
+                    "label": "Energy Star"
+                  }
+                ]
+              },
+              {
+                "id": "73029000-3cc9-4c1b-b547-1ec0f1d33d00",
+                "name": "accessibilityCompliance",
+                "label": "Accessibility Compliance (ADA)",
+                "type": "select",
+                "required": true,
+                "options": [
+                  {
+                    "value": "full",
+                    "label": "Full Compliance"
+                  },
+                  {
+                    "value": "partial",
+                    "label": "Partial Compliance"
+                  },
+                  {
+                    "value": "not_applicable",
+                    "label": "Not Applicable"
+                  }
+                ],
+                "validation": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

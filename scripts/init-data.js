@@ -146,42 +146,6 @@ if (!projectsPageExists) {
         sections: [
           {
             id: uuidv4(),
-            title: 'Page Details',
-            description: 'Basic information about this page (cannot be deleted)',
-            isPageDetails: true,
-            fields: [
-              {
-                id: uuidv4(),
-                name: 'pageTitle',
-                label: 'Page Title',
-                type: 'text',
-                required: true,
-                placeholder: 'e.g., Projects',
-                validation: { required: true, message: 'Page title is required' },
-                hint: 'This will be the name shown in the sidebar'
-              },
-              {
-                id: uuidv4(),
-                name: 'pageDescription',
-                label: 'Page Description',
-                type: 'textarea',
-                required: false,
-                placeholder: 'Brief description of this page',
-                rows: 2,
-                hint: 'Optional description for this page'
-              },
-              {
-                id: uuidv4(),
-                name: 'pagePublished',
-                label: 'Published',
-                type: 'checkbox',
-                required: false,
-                hint: 'Make this page visible to users'
-              }
-            ]
-          },
-          {
-            id: uuidv4(),
             title: 'Entry Details',
             description: 'Essential project details',
             fields: [

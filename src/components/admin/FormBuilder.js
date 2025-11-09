@@ -5,7 +5,8 @@ import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import FormSectionNav from '@/components/admin/FormSectionNav'
-import { FiPlus, FiTrash2, FiChevronUp, FiChevronDown, FiCopy, FiFile, FiChevronRight } from 'react-icons/fi'
+import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
+import { FiPlus, FiTrash2, FiSettings, FiChevronRight } from 'react-icons/fi'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
@@ -20,31 +21,6 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     id: uuidv4(),
     title: 'Page 1',
     sections: [
-      {
-        id: uuidv4(),
-        title: 'Basic Information',
-        description: 'General details',
-        fields: [
-          {
-            id: uuidv4(),
-            name: 'title',
-            label: 'Title',
-            type: 'text',
-            required: true,
-            placeholder: 'Enter title',
-            validation: { required: true, message: 'Title is required' }
-          },
-          {
-            id: uuidv4(),
-            name: 'description',
-            label: 'Description',
-            type: 'textarea',
-            required: false,
-            placeholder: 'Enter description',
-            rows: 3
-          }
-        ]
-      },
       {
         id: uuidv4(),
         title: 'Entry Details',
@@ -88,6 +64,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const [collapsedSections, setCollapsedSections] = useState({})
   const [sectionStatus, setSectionStatus] = useState({})
   const [activeSectionId, setActiveSectionId] = useState(null)
+  const [editingConfig, setEditingConfig] = useState(null) // { type: 'section'|'field', pageIndex, sectionIndex, fieldIndex?, data }
+  const [configHasChanges, setConfigHasChanges] = useState(false)
   const sectionRefs = useRef({})
 
   useEffect(() => {
@@ -257,7 +235,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       label: 'New Field',
       type: 'text',
       required: false,
-      placeholder: '',
+      placeholder: 'Enter value...',
       hint: '',
       validation: {}
     }
@@ -270,6 +248,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     }
     
     setFormData({ ...formData, pages: updatedPages })
+    
+    // Auto-open config for new field
+    setTimeout(() => {
+      handleOpenFieldConfig(pageIndex, sectionIndex, section.fields.length)
+    }, 100)
   }
 
   const handleUpdateField = (pageIndex, sectionIndex, fieldIndex, updates) => {
@@ -283,6 +266,91 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     }
     
     setFormData({ ...formData, pages: updatedPages })
+  }
+
+  const handleOpenSectionConfig = (pageIndex, sectionIndex) => {
+    const section = formData.pages[pageIndex].sections[sectionIndex]
+    
+    // Check if already editing the same section
+    const isSameConfig = editingConfig && 
+                         editingConfig.type === 'section' && 
+                         editingConfig.pageIndex === pageIndex && 
+                         editingConfig.sectionIndex === sectionIndex
+    
+    if (isSameConfig) {
+      return // Already open, do nothing
+    }
+    
+    // Check if there are unsaved changes in current config
+    if (editingConfig && configHasChanges) {
+      if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
+        return
+      }
+    }
+    
+    setEditingConfig({
+      type: 'section',
+      pageIndex,
+      sectionIndex,
+      data: { ...section } // Create a new object reference
+    })
+    setConfigHasChanges(false)
+  }
+
+  const handleOpenFieldConfig = (pageIndex, sectionIndex, fieldIndex) => {
+    const field = formData.pages[pageIndex].sections[sectionIndex].fields[fieldIndex]
+    
+    // Check if already editing the same field
+    const isSameConfig = editingConfig && 
+                         editingConfig.type === 'field' && 
+                         editingConfig.pageIndex === pageIndex && 
+                         editingConfig.sectionIndex === sectionIndex && 
+                         editingConfig.fieldIndex === fieldIndex
+    
+    if (isSameConfig) {
+      return // Already open, do nothing
+    }
+    
+    // Check if there are unsaved changes in current config
+    if (editingConfig && configHasChanges) {
+      if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
+        return
+      }
+    }
+    
+    setEditingConfig({
+      type: 'field',
+      pageIndex,
+      sectionIndex,
+      fieldIndex,
+      data: { ...field } // Create a new object reference
+    })
+    setConfigHasChanges(false)
+  }
+
+  const handleSaveConfig = (updatedData) => {
+    if (!editingConfig) return
+    
+    if (editingConfig.type === 'section') {
+      handleUpdateSection(editingConfig.pageIndex, editingConfig.sectionIndex, updatedData)
+    } else if (editingConfig.type === 'field') {
+      handleUpdateField(
+        editingConfig.pageIndex,
+        editingConfig.sectionIndex,
+        editingConfig.fieldIndex,
+        updatedData
+      )
+    }
+    setConfigHasChanges(false)
+  }
+
+  const handleConfigChange = () => {
+    setConfigHasChanges(true)
+  }
+
+  const handleCloseConfig = () => {
+    setEditingConfig(null)
+    setConfigHasChanges(false)
   }
 
   const handleDeleteField = (pageIndex, sectionIndex, fieldIndex) => {
@@ -311,21 +379,35 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
     
-    if (!formData.title.trim()) {
-      alert('Please enter a form title')
-      return
-    }
-    
     if (formData.pages.length === 0) {
       alert('Form must have at least one page')
       return
     }
     
+    // Check if all pages have titles
+    const missingTitles = formData.pages.some(page => !page.title || !page.title.trim())
+    if (missingTitles) {
+      alert('Please provide a title for all pages')
+      return
+    }
+    
     setLoading(true)
     try {
-      await onSave({ ...formData, published: false })
+      const dataToSave = {
+        ...formData,
+        published: false,
+        title: formData.title || 'Untitled Form',
+        description: formData.description || ''
+      }
+      console.log('Saving form data (Draft):', dataToSave)
+      console.log('Number of pages:', dataToSave.pages.length)
+      console.log('First page sections:', dataToSave.pages[0].sections)
+      
+      await onSave(dataToSave)
+      console.log('Save successful!')
     } catch (err) {
       console.error('Save error:', err)
+      alert('Failed to save. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -334,21 +416,35 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const handleSaveAndPublish = async (e) => {
     e.preventDefault()
     
-    if (!formData.title) {
-      alert('Please enter a form title')
-      return
-    }
-    
     if (formData.pages.length === 0) {
       alert('Form must have at least one page')
       return
     }
     
+    // Check if all pages have titles
+    const missingTitles = formData.pages.some(page => !page.title || !page.title.trim())
+    if (missingTitles) {
+      alert('Please provide a title for all pages')
+      return
+    }
+    
     setLoading(true)
     try {
-      await onSave({ ...formData, published: true })
+      const dataToSave = {
+        ...formData,
+        published: true,
+        title: formData.title || 'Untitled Form',
+        description: formData.description || ''
+      }
+      console.log('Saving form data (Publish):', dataToSave)
+      console.log('Number of pages:', dataToSave.pages.length)
+      console.log('First page sections:', dataToSave.pages[0].sections)
+      
+      await onSave(dataToSave)
+      console.log('Save & Publish successful!')
     } catch (err) {
       console.error('Save error:', err)
+      alert('Failed to save and publish. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -419,6 +515,68 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     }))
   }
 
+  // Helper to render field preview (as users will see it)
+  const renderFieldPreview = (field, pageIndex, sectionIndex, fieldIndex) => {
+    const commonClasses = "w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400"
+    
+    switch (field.type) {
+      case 'textarea':
+        return (
+          <textarea
+            placeholder={field.placeholder || ''}
+            rows={field.rows || 3}
+            className={commonClasses}
+            disabled
+          />
+        )
+      case 'select':
+        return (
+          <select className={commonClasses} disabled>
+            <option>{field.placeholder || 'Select an option...'}</option>
+            {(field.options || []).map((opt, i) => (
+              <option key={i}>{typeof opt === 'object' ? opt.label || opt.value : opt}</option>
+            ))}
+          </select>
+        )
+      case 'checkbox':
+        return (
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              className="rounded border-gray-300 text-primary-600"
+              disabled
+            />
+            <span className="text-sm text-gray-700">{field.label}</span>
+          </label>
+        )
+      case 'radio':
+        return (
+          <div className="space-y-2">
+            {(field.options || ['Option 1', 'Option 2']).map((opt, i) => (
+              <label key={i} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name={field.name}
+                  className="border-gray-300 text-primary-600"
+                  disabled
+                />
+                <span className="text-sm text-gray-700">{typeof opt === 'object' ? opt.label || opt.value : opt}</span>
+              </label>
+            ))}
+          </div>
+        )
+      default:
+        return (
+          <input
+            type={field.type || 'text'}
+            placeholder={field.placeholder || ''}
+            className={commonClasses}
+            disabled
+          />
+        )
+    }
+  }
+
   const currentPage = formData.pages[currentPageIndex]
 
   return (
@@ -473,47 +631,16 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             {/* Page Settings */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {currentPageIndex === 0 ? 'Form Settings' : 'Page Settings'}
+                Page Settings
               </h3>
               
               <div className="space-y-4">
-                {/* Form Settings - Only on first page */}
-                {currentPageIndex === 0 && (
-                  <>
-                    <Input
-                      label="Form Title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      required
-                      placeholder="e.g., Construction Project Form"
-                      hint="Internal name for this form"
-                    />
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Form Description
-                      </label>
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={2}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Optional description for this form"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Brief description of what this form is for</p>
-                    </div>
-
-                    
-                    <div className="border-t border-gray-200 my-4"></div>
-                  </>
-                )}
-                
                 <Input
-                  label={currentPageIndex === 0 ? "Form Page Title" : "Page Title"}
+                  label={currentPageIndex === 0 ? "First Page Title" : "Page Title"}
                   value={currentPage.title}
                   onChange={(e) => handleUpdatePage(currentPageIndex, { title: e.target.value })}
                   placeholder="e.g., Basic Information"
-                  hint={currentPageIndex === 0 ? "Navigation title for the first page" : `Navigation title for page ${currentPageIndex + 1}`}
+                  hint={currentPageIndex === 0 ? "Title for the first page" : `Title for page ${currentPageIndex + 1}`}
                 />
               </div>
             </div>
@@ -557,110 +684,68 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                         )}
                       </div>
                       
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteSection(currentPageIndex, sectionIndex)}
-                        className="text-red-600 flex-shrink-0"
-                      >
-                        <FiTrash2 />
-                      </Button>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSectionConfig(currentPageIndex, sectionIndex)}
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                          title="Section Settings"
+                        >
+                          <FiSettings size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSection(currentPageIndex, sectionIndex)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete Section"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Section Content - Collapsible */}
                     {!collapsedSections[section.id] && (
                       <>
-                        {/* Section Title Edit (when expanded) */}
-                        <div className="mb-4">
-                          <Input
-                            label="Section Title"
-                            value={section.title}
-                            onChange={(e) => handleUpdateSection(currentPageIndex, sectionIndex, { title: e.target.value })}
-                            placeholder="Section name"
-                          />
-                        </div>
-
-                  {/* Fields */}
-                  <div className="space-y-3 mb-4">
+                  {/* Fields - Visual Preview */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                     {section.fields.map((field, fieldIndex) => (
-                      <div key={field.id} className="p-3 rounded-md bg-gray-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 grid grid-cols-2 gap-3">
-                            <Input
-                              label="Field Label"
-                              value={field.label}
-                              onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { label: e.target.value })}
-                            />
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                              <select
-                                value={field.type}
-                                onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { type: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900"
+                      <div 
+                        key={field.id} 
+                        className={`relative group ${field.type === 'textarea' ? 'md:col-span-2 lg:col-span-3' : ''}`}
+                      >
+                        {/* Field Preview */}
+                        <div className="relative">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          {renderFieldPreview(field, currentPageIndex, sectionIndex, fieldIndex)}
+                          {field.hint && (
+                            <p className="text-xs text-gray-500 mt-1">{field.hint}</p>
+                          )}
+                          
+                          {/* Overlay controls on hover */}
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 rounded-md transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenFieldConfig(currentPageIndex, sectionIndex, fieldIndex)}
+                                className="p-2 bg-white shadow-lg rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+                                title="Configure field"
                               >
-                                <option value="text">Text</option>
-                                <option value="number">Number</option>
-                                <option value="email">Email</option>
-                                <option value="tel">Phone</option>
-                                <option value="date">Date</option>
-                                <option value="textarea">Textarea</option>
-                                <option value="select">Select</option>
-                                <option value="checkbox">Checkbox</option>
-                                <option value="radio">Radio</option>
-                              </select>
+                                <FiSettings className="w-5 h-5 text-gray-700" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteField(currentPageIndex, sectionIndex, fieldIndex)}
+                                className="p-2 bg-white shadow-lg rounded-md border border-red-300 hover:bg-red-50 transition-colors"
+                                title="Delete field"
+                              >
+                                <FiTrash2 className="w-5 h-5 text-red-600" />
+                              </button>
                             </div>
                           </div>
-                          
-                          <div className="flex gap-1 ml-2">
-                            {fieldIndex > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMoveField(currentPageIndex, sectionIndex, fieldIndex, 'up')}
-                                    className="p-1 text-gray-600 hover:bg-gray-200 rounded"
-                                  >
-                                    <FiChevronUp size={16} />
-                                  </button>
-                                )}
-                                {fieldIndex < section.fields.length - 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMoveField(currentPageIndex, sectionIndex, fieldIndex, 'down')}
-                                    className="p-1 text-gray-600 hover:bg-gray-200 rounded"
-                                  >
-                                    <FiChevronDown size={16} />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteField(currentPageIndex, sectionIndex, fieldIndex)}
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                >
-                                  <FiTrash2 size={16} />
-                                </button>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <Input
-                            label="Placeholder"
-                            value={field.placeholder || ''}
-                            onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { placeholder: e.target.value })}
-                          />
-                          {field.type !== 'checkbox' && (
-                            <label className="flex items-center gap-2 pt-6">
-                              <input
-                                type="checkbox"
-                                checked={field.required || false}
-                                onChange={(e) => handleUpdateField(currentPageIndex, sectionIndex, fieldIndex, { 
-                                  required: e.target.checked,
-                                  validation: { ...field.validation, required: e.target.checked }
-                                })}
-                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                              />
-                              <span className="text-sm text-gray-700">Required</span>
-                            </label>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -704,6 +789,17 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           activeSectionId={activeSectionId}
         />
       </div>
+
+      {/* Field/Section Config Panel */}
+      {editingConfig && (
+        <FieldConfigPanel
+          field={editingConfig.data}
+          type={editingConfig.type}
+          onSave={handleSaveConfig}
+          onClose={handleCloseConfig}
+          onConfigChange={handleConfigChange}
+        />
+      )}
     </div>
   )
 }

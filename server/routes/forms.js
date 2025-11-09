@@ -102,8 +102,17 @@ router.post('/', authenticate, checkPermission('forms.manage'), async (req, res)
  */
 router.put('/:id', authenticate, checkPermission('forms.manage'), async (req, res) => {
   try {
-    const { title, description, sections, settings } = req.body;
+    const { title, description, sections, pages, settings, published } = req.body;
     const dal = getDAL();
+
+    console.log('Form update request received for ID:', req.params.id);
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Has pages:', !!pages);
+    console.log('Has sections:', !!sections);
+    if (pages) {
+      console.log('Pages count:', pages.length);
+      console.log('First page sections count:', pages[0]?.sections?.length);
+    }
 
     const form = await dal.findById('forms', req.params.id);
     if (!form) {
@@ -111,12 +120,18 @@ router.put('/:id', authenticate, checkPermission('forms.manage'), async (req, re
     }
 
     const updates = {};
-    if (title) updates.title = title;
+    if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (sections) updates.sections = sections;
+    if (pages) updates.pages = pages; // Support new pages structure
     if (settings) updates.settings = { ...form.settings, ...settings };
+    if (published !== undefined) updates.published = published;
+
+    console.log('Updating form with:', Object.keys(updates));
 
     const updatedForm = await dal.updateById('forms', req.params.id, updates);
+    
+    console.log('Form updated successfully');
 
     res.json({
       message: 'Form updated successfully',
