@@ -35,8 +35,7 @@ npm run dev
 ```
 
 The application will start on:
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:4000
+- **Application:** http://localhost:3000 (Frontend + API)
 
 ## 📋 Sample "Projects" Page
 

@@ -30,17 +30,13 @@ A comprehensive full-stack project management system featuring a powerful dynami
 
 ## 📋 Tech Stack
 
-### Frontend
-- **Next.js 14** - React framework with App Router
+### Frontend & Backend (Unified)
+- **Next.js 14** - React framework with App Router + API Routes
 - **React 18** - UI library
 - **Tailwind CSS** - Utility-first CSS framework
 - **Axios** - HTTP client
 - **React Hook Form** - Form management
 - **React Icons** - Icon library
-
-### Backend
-- **Node.js** - Runtime environment
-- **Express** - Web framework
 - **JWT** - Authentication
 - **Bcrypt** - Password hashing
 - **UUID** - Unique ID generation
@@ -48,6 +44,8 @@ A comprehensive full-stack project management system featuring a powerful dynami
 ### Storage
 - **Filesystem (JSON)** - Default storage
 - **Database-ready** - Easy migration to MongoDB, PostgreSQL, MySQL
+
+> **Note**: This application uses Next.js API Routes, so you don't need a separate backend server!
 
 ## 🛠️ Installation
 
@@ -68,22 +66,12 @@ cd project-management-system
 npm install
 ```
 
-3. **Create environment file**
-Create a `.env` file in the root directory:
+3. **Create environment file** (Optional)
+Create a `.env.local` file in the root directory if you want to customize:
 ```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# Frontend URL
-NEXT_PUBLIC_API_URL=http://localhost:5000
-
 # JWT Configuration
 JWT_SECRET=your-super-secret-key-change-this-in-production
 JWT_EXPIRES_IN=7d
-
-# Storage Configuration
-STORAGE_TYPE=filesystem
 ```
 
 4. **Initialize data directory**
@@ -91,25 +79,30 @@ STORAGE_TYPE=filesystem
 mkdir data
 ```
 
-5. **Start the development servers**
+5. **Start the development server**
 ```bash
 npm run dev
 ```
 
-This will start:
-- Next.js frontend on `http://localhost:3000`
-- Express backend on `http://localhost:5000`
+This will start Next.js with integrated API routes on `http://localhost:3000`
 
 ## 📁 Project Structure
 
 ```
 project-management-system/
-├── src/                          # Frontend source code
+├── src/                          # Source code
 │   ├── app/                      # Next.js app directory
+│   │   ├── api/                 # API Routes (Backend)
+│   │   │   ├── auth/            # Authentication endpoints
+│   │   │   ├── users/           # User management endpoints
+│   │   │   ├── roles/           # Role management endpoints
+│   │   │   ├── pages/           # Page management endpoints
+│   │   │   ├── forms/           # Form management endpoints
+│   │   │   └── projects/        # Project management endpoints
 │   │   ├── admin/               # Admin panel pages
-│   │   │   ├── pages/           # Page management
-│   │   │   ├── users/           # User management
-│   │   │   └── roles/           # Role management
+│   │   │   ├── pages/           # Page management UI
+│   │   │   ├── users/           # User management UI
+│   │   │   └── roles/           # Role management UI
 │   │   ├── dashboard/           # Main dashboard
 │   │   ├── login/               # Login page
 │   │   ├── register/            # Registration page
@@ -137,27 +130,14 @@ project-management-system/
 │   ├── context/                 # React context providers
 │   │   ├── AuthContext.js       # Authentication context
 │   │   └── ToastContext.js      # Toast notification context
-│   ├── lib/                     # Utility libraries
-│   │   ├── api.js               # API client
-│   │   └── utils.js             # Helper functions
-│   └── hooks/                   # Custom React hooks
-├── server/                       # Backend source code
-│   ├── routes/                  # API routes
-│   │   ├── auth.js              # Authentication routes
-│   │   ├── users.js             # User management
-│   │   ├── roles.js             # Role management
-│   │   ├── pages.js             # Page management
-│   │   ├── forms.js             # Form management
-│   │   └── projects.js          # Project management
-│   ├── middleware/              # Express middleware
-│   │   ├── auth.js              # Authentication middleware
-│   │   └── errorHandler.js      # Error handling
-│   ├── dal/                     # Data Access Layer
-│   │   ├── index.js             # DAL entry point
-│   │   └── filesystem.js        # Filesystem implementation
-│   ├── config/                  # Configuration files
-│   │   └── storage.js           # Storage configuration
-│   └── index.js                 # Server entry point
+│   └── lib/                     # Utility libraries
+│       ├── api.js               # API client
+│       ├── utils.js             # Helper functions
+│       ├── auth-helpers.js      # Auth utilities
+│       ├── dal/                 # Data Access Layer
+│       │   └── filesystem.js    # Filesystem implementation
+│       └── middleware/          # API middleware
+│           └── auth.js          # Authentication middleware
 ├── data/                        # JSON data storage
 │   ├── users.json
 │   ├── roles.json
@@ -536,18 +516,41 @@ npm start
 
 ### Environment Variables for Production
 ```env
-NODE_ENV=production
-PORT=5000
-NEXT_PUBLIC_API_URL=https://your-domain.com
 JWT_SECRET=your-very-secure-secret-key-here
 JWT_EXPIRES_IN=7d
-STORAGE_TYPE=filesystem
 ```
 
 ### Deployment Platforms
-- **Vercel** - For Next.js frontend
-- **Railway/Render** - For Express backend
-- **Docker** - Containerized deployment
+
+Since this is a unified Next.js application, you can deploy to any platform that supports Next.js:
+
+- **Vercel** (Recommended) - Optimized for Next.js, zero config deployment
+  ```bash
+  vercel deploy
+  ```
+
+- **Netlify** - Deploy as Next.js application
+  
+- **AWS Amplify** - Full Next.js support with API routes
+
+- **Railway/Render** - Node.js hosting
+  ```bash
+  npm run build && npm start
+  ```
+
+- **Docker** - Single container deployment
+  ```dockerfile
+  FROM node:18-alpine
+  WORKDIR /app
+  COPY package*.json ./
+  RUN npm ci --only=production
+  COPY . .
+  RUN npm run build
+  EXPOSE 3000
+  CMD ["npm", "start"]
+  ```
+
+> **Note**: The `data/` directory needs to be persisted between deployments. Use volume mounts or migrate to a database for production.
 
 ## 🤝 Contributing
 
@@ -565,9 +568,10 @@ MIT License - feel free to use this project for personal or commercial purposes.
 
 ### Port Already in Use
 ```bash
-# Kill process on port 5000
-npx kill-port 5000
-# Or change PORT in .env
+# Kill process on port 3000
+npx kill-port 3000
+# Or run on different port
+PORT=3001 npm run dev
 ```
 
 ### Data Directory Permission Issues
@@ -580,6 +584,10 @@ chmod 755 data
 rm -rf node_modules package-lock.json
 npm install
 ```
+
+### API Routes Not Working
+- Ensure you're accessing `/api/*` routes, not a separate backend URL
+- Check that `src/lib/api.js` is configured with `baseURL: '/api'`
 
 ## 📞 Support
 

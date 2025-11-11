@@ -6,13 +6,25 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const config = require('../config/storage');
+
+// Use /tmp on serverless (Vercel), local data/ directory in development
+const DATA_DIR = process.env.VERCEL 
+  ? path.resolve('/tmp', 'data')
+  : path.resolve(process.cwd(), 'data');
+
+const COLLECTIONS = {
+  users: 'users.json',
+  roles: 'roles.json',
+  pages: 'pages.json',
+  forms: 'forms.json',
+  projects: 'projects.json',
+  sessions: 'sessions.json'
+};
 
 class FileSystemDAL {
   constructor() {
-    this.dataDir = path.resolve(config.filesystem.dataDir);
-    this.collections = config.filesystem.collections;
-    this.init();
+    this.dataDir = DATA_DIR;
+    this.collections = COLLECTIONS;
   }
 
   /**
@@ -252,5 +264,14 @@ class FileSystemDAL {
   }
 }
 
-module.exports = FileSystemDAL;
+let dalInstance;
+
+function getDAL() {
+  if (!dalInstance) {
+    dalInstance = new FileSystemDAL();
+  }
+  return dalInstance;
+}
+
+module.exports = { getDAL };
 
