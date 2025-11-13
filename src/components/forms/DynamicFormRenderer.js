@@ -45,48 +45,71 @@ const DynamicFormRenderer = ({
 
   const validateField = (field, value) => {
     const validation = field.validation || {}
-    
+
     if (validation.required && !value) {
       return validation.message || `${field.label} is required`
     }
-    
+
     if (validation.minLength && value.length < validation.minLength) {
       return validation.message || `Minimum length is ${validation.minLength}`
     }
-    
+
     if (validation.maxLength && value.length > validation.maxLength) {
       return validation.message || `Maximum length is ${validation.maxLength}`
     }
-    
+
     if (validation.pattern && !new RegExp(validation.pattern).test(value)) {
       return validation.message || `Invalid format`
     }
-    
+
     if (field.type === 'email' && value && !/\S+@\S+\.\S+/.test(value)) {
       return 'Invalid email format'
     }
-    
+
     return null
   }
 
   const validateSection = (section) => {
     const sectionErrors = {}
-    
-    section.fields.forEach(field => {
-      // Check if field should be displayed (dependency check)
-      if (field.dependsOn) {
-        const dependentValue = formData[field.dependsOn.field]
-        if (dependentValue !== field.dependsOn.value) {
-          return // Skip validation for hidden fields
+
+    if (section.type === 'repeater') {
+      // Special validation for repeater sections
+      const minRows = section.repeaterConfig?.minRows || 1
+      const sectionValue = Array.isArray(formData[section.id]) ? formData[section.id] : []
+
+      if (sectionValue.length < minRows) {
+        sectionErrors[section.id] = `${section.title} must have at least ${minRows} row${minRows > 1 ? 's' : ''}`
+        return sectionErrors
+      }
+
+      // Validate each row in the repeater
+      sectionValue.forEach((rowData, rowIndex) => {
+        section.fields.forEach(field => {
+          const fieldValue = rowData[field.name]
+          const error = validateField(field, fieldValue)
+          if (error) {
+            sectionErrors[`${section.id}_${rowIndex}_${field.name}`] = `${section.title} - Row ${rowIndex + 1}: ${error}`
+          }
+        })
+      })
+    } else {
+      // Regular section validation
+      section.fields.forEach(field => {
+        // Check if field should be displayed (dependency check)
+        if (field.dependsOn) {
+          const dependentValue = formData[field.dependsOn.field]
+          if (dependentValue !== field.dependsOn.value) {
+            return // Skip validation for hidden fields
+          }
         }
-      }
-      
-      const error = validateField(field, formData[field.name])
-      if (error) {
-        sectionErrors[field.name] = error
-      }
-    })
-    
+
+        const error = validateField(field, formData[field.name])
+        if (error) {
+          sectionErrors[field.name] = error
+        }
+      })
+    }
+
     return sectionErrors
   }
 
@@ -236,17 +259,23 @@ const DynamicFormRenderer = ({
   }
 
   const renderField = (field) => {
-    // Check dependency
-    if (field.dependsOn) {
+    // Support custom value, onChange, and error for repeater fields
+    const customValue = field.value !== undefined ? field.value : formData[field.name] || ''
+    const customOnChange = field.onChange
+    const customError = field.error !== undefined ? field.error : errors[field.name]
+    const isDisabled = mode === 'view'
+
+    // Check dependency (skip for repeater fields since they have custom handling)
+    if (field.dependsOn && !customOnChange) {
       const dependentValue = formData[field.dependsOn.field]
       if (dependentValue !== field.dependsOn.value) {
         return null // Hide field
       }
     }
 
-    const value = formData[field.name] || ''
-    const error = errors[field.name]
-    const isDisabled = mode === 'view'
+    const value = customValue
+    const error = customError
+    const handleFieldChange = customOnChange || handleChange
 
     switch (field.type) {
       case 'text':
@@ -257,7 +286,7 @@ const DynamicFormRenderer = ({
             type={field.type}
             name={field.name}
             value={value || ''}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
             placeholder={field.placeholder}
@@ -274,7 +303,7 @@ const DynamicFormRenderer = ({
             type="number"
             name={field.name}
             value={value || ''}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
             placeholder={field.placeholder}
@@ -291,7 +320,7 @@ const DynamicFormRenderer = ({
             type="date"
             name={field.name}
             value={value || ''}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
             hint={field.hint}
@@ -310,7 +339,7 @@ const DynamicFormRenderer = ({
             <textarea
               name={field.name}
               value={value || ''}
-              onChange={(e) => handleChange(field.name, e.target.value)}
+              onChange={(e) => handleFieldChange(field.name, e.target.value)}
               placeholder={field.placeholder}
               rows={field.rows || 4}
               disabled={isDisabled}
@@ -340,7 +369,7 @@ const DynamicFormRenderer = ({
               <select
                 name={field.name}
                 value={value || ''}
-                onChange={(e) => handleChange(field.name, e.target.value)}
+                onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 disabled={isDisabled}
                 className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
                   error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
@@ -360,7 +389,7 @@ const DynamicFormRenderer = ({
                 value={value ? (Array.isArray(value) ? value : [value]) : []}
                 onChange={(e) => {
                   const selected = Array.from(e.target.selectedOptions, option => option.value)
-                  handleChange(field.name, selected)
+                  handleFieldChange(field.name, selected)
                 }}
                 multiple
                 disabled={isDisabled}
@@ -379,7 +408,7 @@ const DynamicFormRenderer = ({
               <select
                 name={field.name}
                 value={value || ''}
-                onChange={(e) => handleChange(field.name, e.target.value)}
+                onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 disabled={isDisabled}
                 className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
                   error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
@@ -402,8 +431,596 @@ const DynamicFormRenderer = ({
           </div>
         )
 
+      case 'checkbox_group':
+        if (field.orientation === 'question-answer') {
+          return (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="flex-shrink-0">
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {field.label}
+                    {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
+                  <div className="flex flex-wrap gap-4 sm:justify-end">
+                    {field.options?.map((option, index) => {
+                      const optionValue = typeof option === 'object' ? option.value || option.label : option
+                      const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                      const isChecked = Array.isArray(value) ? value.includes(optionValue) : false
+
+                      return (
+                        <label key={index} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={field.name}
+                            value={optionValue}
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const currentValues = Array.isArray(value) ? [...value] : []
+                              if (e.target.checked) {
+                                // Add to array
+                                handleFieldChange(field.name, [...currentValues, optionValue])
+                              } else {
+                                // Remove from array
+                                handleFieldChange(field.name, currentValues.filter(v => v !== optionValue))
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className={`rounded border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                              error ? 'border-red-400 focus:ring-red-400' : ''
+                            } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                          />
+                          <span className={`text-sm text-gray-700 ${
+                            isDisabled ? 'text-gray-500' : ''
+                          }`}>
+                            {optionLabel}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              {field.hint && !error && (
+                <p className="text-xs text-gray-500">{field.hint}</p>
+              )}
+              {error && (
+                <p className="text-xs text-red-500">{error}</p>
+              )}
+            </div>
+          )
+        }
+        if (field.orientation === 'label-left') {
+          return (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                <div className="flex-shrink-0">
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {field.label}
+                    {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                <div className="flex-1 mt-1 sm:mt-0">
+                  <div className="flex flex-wrap gap-4">
+                    {field.options?.map((option, index) => {
+                      const optionValue = typeof option === 'object' ? option.value || option.label : option
+                      const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                      const isChecked = Array.isArray(value) ? value.includes(optionValue) : false
+
+                      return (
+                        <label key={index} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={field.name}
+                            value={optionValue}
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const currentValues = Array.isArray(value) ? [...value] : []
+                              if (e.target.checked) {
+                                // Add to array
+                                handleFieldChange(field.name, [...currentValues, optionValue])
+                              } else {
+                                // Remove from array
+                                handleFieldChange(field.name, currentValues.filter(v => v !== optionValue))
+                              }
+                            }}
+                            disabled={isDisabled}
+                            className={`rounded border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                              error ? 'border-red-400 focus:ring-red-400' : ''
+                            } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                          />
+                          <span className={`text-sm text-gray-700 ${
+                            isDisabled ? 'text-gray-500' : ''
+                          }`}>
+                            {optionLabel}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              {field.hint && !error && (
+                <p className="text-xs text-gray-500">{field.hint}</p>
+              )}
+              {error && (
+                <p className="text-xs text-red-500">{error}</p>
+              )}
+            </div>
+          )
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className={`${
+              field.orientation === 'horizontal'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
+                : 'space-y-2'
+            }`}>
+              {field.options?.map((option, index) => {
+                const optionValue = typeof option === 'object' ? option.value || option.label : option
+                const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                const isChecked = Array.isArray(value) ? value.includes(optionValue) : false
+
+                return (
+                  <label key={index} className={`flex items-center gap-2 cursor-pointer ${
+                    field.orientation === 'horizontal' ? 'min-w-0' : ''
+                  }`}>
+                    <input
+                      type="checkbox"
+                      name={field.name}
+                      value={optionValue}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const currentValues = Array.isArray(value) ? [...value] : []
+                        if (e.target.checked) {
+                          // Add to array
+                          handleFieldChange(field.name, [...currentValues, optionValue])
+                        } else {
+                          // Remove from array
+                          handleFieldChange(field.name, currentValues.filter(v => v !== optionValue))
+                        }
+                      }}
+                      disabled={isDisabled}
+                      className={`rounded border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                        error ? 'border-red-400 focus:ring-red-400' : ''
+                      } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                    />
+                    <span className={`text-sm text-gray-700 ${
+                      isDisabled ? 'text-gray-500' : ''
+                    }`}>
+                      {optionLabel}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+            {field.hint && !error && (
+              <p className="text-xs text-gray-500">{field.hint}</p>
+            )}
+            {error && (
+              <p className="text-xs text-red-500">{error}</p>
+            )}
+          </div>
+        )
+
+      case 'radio_group':
+        if (field.orientation === 'question-answer') {
+          return (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div className="flex-shrink-0">
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {field.label}
+                    {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
+                  <div className="flex flex-wrap gap-4 sm:justify-end">
+                    {field.options?.map((option, index) => {
+                      const optionValue = typeof option === 'object' ? option.value || option.label : option
+                      const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                      const isChecked = value === optionValue
+
+                      return (
+                        <label key={index} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={field.name}
+                            value={optionValue}
+                            checked={isChecked}
+                            onChange={(e) => handleFieldChange(field.name, optionValue)}
+                            disabled={isDisabled}
+                            className={`rounded-full border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                              error ? 'border-red-400 focus:ring-red-400' : ''
+                            } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                          />
+                          <span className={`text-sm text-gray-700 ${
+                            isDisabled ? 'text-gray-500' : ''
+                          }`}>
+                            {optionLabel}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              {field.hint && !error && (
+                <p className="text-xs text-gray-500">{field.hint}</p>
+              )}
+              {error && (
+                <p className="text-xs text-red-500">{error}</p>
+              )}
+            </div>
+          )
+        }
+        if (field.orientation === 'label-left') {
+          return (
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                <div className="flex-shrink-0">
+                  <label className="text-sm font-medium text-gray-700 block">
+                    {field.label}
+                    {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                <div className="flex-1 mt-1 sm:mt-0">
+                  <div className="flex flex-wrap gap-4">
+                    {field.options?.map((option, index) => {
+                      const optionValue = typeof option === 'object' ? option.value || option.label : option
+                      const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                      const isChecked = value === optionValue
+
+                      return (
+                        <label key={index} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={field.name}
+                            value={optionValue}
+                            checked={isChecked}
+                            onChange={(e) => handleFieldChange(field.name, optionValue)}
+                            disabled={isDisabled}
+                            className={`rounded-full border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                              error ? 'border-red-400 focus:ring-red-400' : ''
+                            } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                          />
+                          <span className={`text-sm text-gray-700 ${
+                            isDisabled ? 'text-gray-500' : ''
+                          }`}>
+                            {optionLabel}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              {field.hint && !error && (
+                <p className="text-xs text-gray-500">{field.hint}</p>
+              )}
+              {error && (
+                <p className="text-xs text-red-500">{error}</p>
+              )}
+            </div>
+          )
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              {field.label}
+              {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className={`${
+              field.orientation === 'horizontal'
+                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
+                : 'space-y-2'
+            }`}>
+              {field.options?.map((option, index) => {
+                const optionValue = typeof option === 'object' ? option.value || option.label : option
+                const optionLabel = typeof option === 'object' ? option.label || option.value : option
+                const isChecked = value === optionValue
+
+                return (
+                  <label key={index} className={`flex items-center gap-2 cursor-pointer ${
+                    field.orientation === 'horizontal' ? 'min-w-0' : ''
+                  }`}>
+                    <input
+                      type="radio"
+                      name={field.name}
+                      value={optionValue}
+                      checked={isChecked}
+                      onChange={(e) => handleFieldChange(field.name, optionValue)}
+                      disabled={isDisabled}
+                      className={`rounded-full border-gray-300 text-primary-600 focus:ring-primary-500 ${
+                        error ? 'border-red-400 focus:ring-red-400' : ''
+                      } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                    />
+                    <span className={`text-sm text-gray-700 ${
+                      isDisabled ? 'text-gray-500' : ''
+                    }`}>
+                      {optionLabel}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+            {field.hint && !error && (
+              <p className="text-xs text-gray-500">{field.hint}</p>
+            )}
+            {error && (
+              <p className="text-xs text-red-500">{error}</p>
+            )}
+          </div>
+        )
+
+
+      case 'section':
+        // Nested section field
+        return renderSection(field, fieldPath => {
+          // For nested sections, we need to handle the data path
+          const nestedData = formData[field.name] || {}
+          return {
+            getData: (key) => nestedData[key],
+            setData: (key, value) => {
+              const newNestedData = { ...nestedData, [key]: value }
+              handleFieldChange(field.name, newNestedData)
+            },
+            getError: (key) => errors[`${field.name}.${key}`],
+            clearError: (key) => {
+              if (errors[`${field.name}.${key}`]) {
+                setErrors(prev => {
+                  const newErrors = { ...prev }
+                  delete newErrors[`${field.name}.${key}`]
+                  return newErrors
+                })
+              }
+            }
+          }
+        }, field.name)
+
       default:
         return null
+    }
+  }
+
+  // Render section (can be top-level or nested)
+  const renderSection = (section, dataContext = null, pathPrefix = '', sectionIndex = 0) => {
+    const isNested = dataContext !== null
+    const sectionId = section.id || (isNested ? `${pathPrefix}-section-${sectionIndex}` : `section-${sectionIndex}`)
+    
+    // Check if it's a repeater section (supports both section.type and section.sectionType)
+    const isRepeaterSection = section.type === 'repeater' || section.sectionType === 'repeater'
+    
+    if (isRepeaterSection) {
+      // Repeater Section
+      const minRows = section.repeaterConfig?.minRows || 1
+      const maxRows = section.repeaterConfig?.maxRows || 10
+      const addLabel = section.repeaterConfig?.addLabel?.trim() || 'Add New'
+      const removeLabel = section.repeaterConfig?.removeLabel?.trim() || 'Remove'
+      const addButtonPosition = section.repeaterConfig?.addButtonPosition || 'bottom'
+      const isDisabled = mode === 'view'
+
+      // Get data from context if nested, otherwise from formData
+      const getSectionValue = () => {
+        if (isNested) {
+          const ctx = dataContext()
+          const key = section.name || section.id
+          return Array.isArray(ctx.getData(key)) ? ctx.getData(key) : []
+        }
+        const key = section.id || section.name
+        return Array.isArray(formData[key]) ? formData[key] : []
+      }
+
+      const sectionValue = getSectionValue()
+
+      // Initialize with minimum rows if empty
+      const initializedValue = sectionValue.length < minRows
+        ? [
+            ...sectionValue,
+            ...Array.from({ length: minRows - sectionValue.length }, () =>
+              section.fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+            )
+          ]
+        : sectionValue
+
+      const handleRepeaterChange = (rowIndex, fieldName, subValue) => {
+        const newValue = [...initializedValue]
+        if (!newValue[rowIndex]) {
+          newValue[rowIndex] = section.fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+        }
+        newValue[rowIndex][fieldName] = subValue
+        
+        const key = isNested ? (section.name || section.id) : (section.id || section.name)
+        if (isNested) {
+          const ctx = dataContext()
+          ctx.setData(key, newValue)
+        } else {
+          handleChange(key, newValue)
+        }
+      }
+
+      const addRepeaterRow = () => {
+        if (initializedValue.length >= maxRows) return
+        const newRow = section.fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+        const newValue = addButtonPosition === 'top' ? [newRow, ...initializedValue] : [...initializedValue, newRow]
+        
+        const key = isNested ? (section.name || section.id) : (section.id || section.name)
+        if (isNested) {
+          const ctx = dataContext()
+          ctx.setData(key, newValue)
+        } else {
+          handleChange(key, newValue)
+        }
+      }
+
+      const removeRepeaterRow = (rowIndex) => {
+        if (initializedValue.length <= minRows) return
+        const newValue = initializedValue.filter((_, i) => i !== rowIndex)
+        
+        const key = isNested ? (section.name || section.id) : (section.id || section.name)
+        if (isNested) {
+          const ctx = dataContext()
+          ctx.setData(key, newValue)
+        } else {
+          handleChange(key, newValue)
+        }
+      }
+
+      return (
+        <Card
+          key={sectionId}
+          className={isNested ? 'mb-4 mt-4' : 'mb-6'}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div>
+              <h2 className={`font-bold text-gray-900 dark:text-gray-100 ${isNested ? 'text-base' : 'text-lg'}`}>{section.title || section.label}</h2>
+              {section.description && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{section.description}</p>
+              )}
+            </div>
+            {addButtonPosition === 'top' && initializedValue.length < maxRows && !isDisabled && (
+              <button
+                type="button"
+                onClick={addRepeaterRow}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+              >
+                + {addLabel}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {!isDisabled && (
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 text-[10px] font-bold">
+                  R
+                </span>
+                All entries below belong to this repeatable group.
+              </div>
+            )}
+
+            {/* Repeated section instances */}
+            {initializedValue.map((rowData, rowIndex) => (
+              <div
+                key={`${sectionId}-${rowIndex}`}
+                className="rounded-md border border-gray-200 dark:border-gray-700 p-4"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wide">
+                    {section.title || section.label} • Item {rowIndex + 1}
+                  </h3>
+                  {initializedValue.length > minRows && !isDisabled && (
+                    <button
+                      type="button"
+                      onClick={() => removeRepeaterRow(rowIndex)}
+                      className="px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                      title="Remove this entry"
+                    >
+                      {removeLabel}
+                    </button>
+                  )}
+                </div>
+
+                {/* Render all fields exactly like in regular sections */}
+                <div className="grid grid-cols-12 gap-3">
+                  {section.fields.map(field => {
+                    const columnSpan = field.columnSpan || 12
+                    const gridColumn = field.gridColumn || 1
+                    const gridRow = field.gridRow || 1
+
+                    return (
+                      <div
+                        key={`${field.name}-${rowIndex}`}
+                        className={`col-span-${columnSpan}`}
+                        style={{
+                          gridColumn: `${gridColumn} / span ${columnSpan}`,
+                          gridRow: gridRow
+                        }}
+                      >
+                        {renderField({
+                          ...field,
+                          name: `${sectionId}_${rowIndex}_${field.name}`,
+                          value: rowData[field.name] || '',
+                          onChange: (fieldName, value) => handleRepeaterChange(rowIndex, field.name, value),
+                          error: errors[`${sectionId}_${rowIndex}_${field.name}`]
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {addButtonPosition !== 'top' && initializedValue.length < maxRows && !isDisabled && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={addRepeaterRow}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+              >
+                + {addLabel}
+              </button>
+            </div>
+          )}
+        </Card>
+      )
+    } else {
+      // Regular Section - Grid Layout
+      return (
+        <Card
+          key={sectionId}
+          id={sectionId}
+          ref={!isNested ? (el) => (sectionRefs.current[sectionId] = el) : null}
+          className={isNested ? 'mb-4 mt-4' : 'mb-6'}
+        >
+          <div className="mb-6">
+            <h2 className={`font-bold text-gray-900 dark:text-gray-100 ${isNested ? 'text-base' : 'text-lg'}`}>{section.title || section.label}</h2>
+            {section.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{section.description}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-12 gap-3">
+            {section.fields.map(field => {
+              const columnSpan = field.columnSpan || 12
+              const gridColumn = field.gridColumn || 1
+              const gridRow = field.gridRow || 1
+
+              return (
+                <div
+                  key={field.name}
+                  className={`col-span-${columnSpan}`}
+                  style={{
+                    gridColumn: `${gridColumn} / span ${columnSpan}`,
+                    gridRow: gridRow
+                  }}
+                >
+                  {isNested ? (
+                    // For nested sections, handle data context
+                    renderField({
+                      ...field,
+                      value: dataContext().getData(field.name) || '',
+                      onChange: (fieldName, value) => {
+                        dataContext().setData(field.name, value)
+                        dataContext().clearError(field.name)
+                      },
+                      error: dataContext().getError(field.name)
+                    })
+                  ) : (
+                    renderField(field)
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )
     }
   }
 
@@ -438,30 +1055,46 @@ const DynamicFormRenderer = ({
 
   // Calculate section status
   const getSectionStatus = (section) => {
-    const sectionFields = section.fields.filter(field => {
-      // Check dependency
-      if (field.dependsOn) {
-        const dependentValue = formData[field.dependsOn.field]
-        return dependentValue === field.dependsOn.value
-      }
-      return true
-    })
+    if (section.type === 'repeater') {
+      // Special status calculation for repeater sections
+      const minRows = section.repeaterConfig?.minRows || 1
+      const sectionValue = Array.isArray(formData[section.id]) ? formData[section.id] : []
 
-    // Check for errors in this section
-    const hasErrors = sectionFields.some(field => errors[field.name])
-    if (hasErrors) return 'error'
+      // Check for errors in this section
+      const sectionErrors = Object.keys(errors).filter(key => key.startsWith(`${section.id}_`))
+      if (sectionErrors.length > 0) return 'error'
 
-    // Check if all required fields are filled
-    const requiredFields = sectionFields.filter(f => f.validation?.required)
-    const allFilled = requiredFields.every(field => {
-      const value = formData[field.name]
-      return value !== undefined && value !== null && value !== ''
-    })
+      // Check if minimum rows requirement is met
+      if (sectionValue.length >= minRows) return 'filled'
 
-    if (allFilled && requiredFields.length > 0) return 'filled'
-    if (requiredFields.length === 0) return 'filled' // No required fields
+      return 'empty'
+    } else {
+      // Regular section status calculation
+      const sectionFields = section.fields.filter(field => {
+        // Check dependency
+        if (field.dependsOn) {
+          const dependentValue = formData[field.dependsOn.field]
+          return dependentValue === field.dependsOn.value
+        }
+        return true
+      })
 
-    return 'empty'
+      // Check for errors in this section
+      const hasErrors = sectionFields.some(field => errors[field.name])
+      if (hasErrors) return 'error'
+
+      // Check if all required fields are filled
+      const requiredFields = sectionFields.filter(f => f.validation?.required)
+      const allFilled = requiredFields.every(field => {
+        const value = formData[field.name]
+        return value !== undefined && value !== null && value !== ''
+      })
+
+      if (allFilled && requiredFields.length > 0) return 'filled'
+      if (requiredFields.length === 0) return 'filled' // No required fields
+
+      return 'empty'
+    }
   }
 
   // Scroll to section
@@ -545,36 +1178,36 @@ const DynamicFormRenderer = ({
   )
 
   return (
-    <div className={`flex relative ${mode !== 'view' ? 'h-full' : ''}`}>
+    <div className="flex relative h-full w-full">
       {/* Main Form Content */}
-      <div className={`flex-1 min-w-0 flex flex-col ${mode !== 'view' ? 'h-full' : ''}`}>
+      <div className="flex-1 min-w-0 flex flex-col h-full">
         
-        <div className={`flex-1 ${mode !== 'view' ? 'overflow-y-auto' : ''} px-4 sm:px-6 lg:px-8 py-8`}>
-          {/* Page Tabs for Multi-Page Forms */}
-          {isMultiPage && (
-            <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex overflow-x-auto">
-                {pages.map((page, index) => (
-                  <button
-                    key={page.id || index}
-                    type="button"
-                    onClick={() => handleTabSwitch(index)}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                      currentPage === index
-                        ? 'border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400'
-                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
-                    {page.title || `Page ${index + 1}`}
-                  </button>
-                ))}
-              </div>
+        {/* Page Tabs for Multi-Page Forms */}
+        {isMultiPage && (
+          <div className="px-4 sm:px-6 lg:px-8 pt-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex overflow-x-auto">
+              {pages.map((page, index) => (
+                <button
+                  key={page.id || index}
+                  type="button"
+                  onClick={() => handleTabSwitch(index)}
+                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    currentPage === index
+                      ? 'border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400'
+                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  {page.title || `Page ${index + 1}`}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          <form 
+        <form 
           onSubmit={handleSubmit} 
           autoComplete="off"
+          className="flex-1 flex flex-col min-h-0"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
               e.preventDefault()
@@ -582,44 +1215,9 @@ const DynamicFormRenderer = ({
             }
           }}
         >
-          {sectionsToRender.map((section, sectionIndex) => (
-            <Card
-              key={section.id || sectionIndex}
-              id={section.id || `section-${sectionIndex}`}
-              ref={(el) => (sectionRefs.current[section.id || `section-${sectionIndex}`] = el)}
-              className="mb-6"
-            >
-              <div className="mb-6">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{section.title}</h2>
-                {section.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{section.description}</p>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-12 gap-3">
-                {section.fields.map(field => {
-                  const columnSpan = field.columnSpan || 12;
-                  const gridColumn = field.gridColumn || 1;
-                  const gridRow = field.gridRow || 1;
-                  
-                  return (
-                    <div
-                      key={field.name}
-                      className={`col-span-${columnSpan}`}
-                      style={{
-                        gridColumn: `${gridColumn} / span ${columnSpan}`,
-                        gridRow: gridRow
-                      }}
-                    >
-                      {renderField(field)}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
-        </form>
-        </div>
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+          {sectionsToRender.map((section, sectionIndex) => renderSection(section, null, '', sectionIndex))}
+          </div>
       
         {/* Footer with Action Buttons - Fixed at bottom */}
         {mode !== 'view' && (
@@ -631,6 +1229,7 @@ const DynamicFormRenderer = ({
             </div>
           </div>
         )}
+        </form>
       </div>
 
       {/* Right Sidebar - Section Navigation */}

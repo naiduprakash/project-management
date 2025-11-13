@@ -138,14 +138,16 @@ export default function EditEntryPage() {
         />
         
         {/* Main Content with Form (actions at bottom) */}
-        <div className="flex-1">
-          <DynamicFormRenderer
-            form={form}
-            initialData={entry.data}
-            onSubmit={handleSubmit}
-            onSaveDraft={handleSaveDraft}
-            mode="edit"
-          />
+        <div className="flex-1 min-h-0">
+          <div className="h-full">
+            <DynamicFormRenderer
+              form={form}
+              initialData={entry.data}
+              onSubmit={handleSubmit}
+              onSaveDraft={handleSaveDraft}
+              mode="edit"
+            />
+          </div>
         </div>
       </div>
     </MainLayout>

@@ -158,6 +158,137 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 placeholder="Optional description for this section"
               />
             </div>
+
+            {/* Repeater Toggle */}
+            <div className="border-t border-gray-200 pt-4">
+              <div>
+                <label className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={config.type === 'repeater'}
+                    onChange={(e) => {
+                      const newType = e.target.checked ? 'repeater' : 'regular'
+                  const updates = { type: newType }
+
+                  if (newType === 'repeater') {
+                    const existingConfig = config.repeaterConfig || {}
+                    updates.repeaterConfig = {
+                      minRows: existingConfig.minRows ?? 1,
+                      maxRows: existingConfig.maxRows ?? 10,
+                      addLabel: existingConfig.addLabel ?? 'Add New',
+                      removeLabel: existingConfig.removeLabel ?? 'Remove',
+                      addButtonPosition: existingConfig.addButtonPosition ?? 'bottom'
+                    }
+                  } else {
+                    updates.repeaterConfig = undefined
+                  }
+
+                      updateConfig(updates)
+                    }}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700">Make this section repeatable</span>
+                </label>
+                <p className="text-xs text-gray-500 ml-6">
+                  When enabled, this section becomes a repeater where all fields can be added multiple times as rows in a table.
+                </p>
+              </div>
+
+              {/* Repeater Configuration - only show when section is a repeater */}
+              {config.type === 'repeater' && (
+                <div className="ml-6 mt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Min Rows
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={config.repeaterConfig?.minRows ?? 1}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: {
+                            ...config.repeaterConfig,
+                            minRows: parseInt(e.target.value, 10) || 0
+                          }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Rows
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={config.repeaterConfig?.maxRows ?? 10}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: {
+                            ...config.repeaterConfig,
+                            maxRows: parseInt(e.target.value, 10) || 10
+                          }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Add Button Label"
+                      value={config.repeaterConfig?.addLabel ?? 'Add New'}
+                      onChange={(e) => updateConfig({
+                        repeaterConfig: {
+                          ...config.repeaterConfig,
+                          addLabel: e.target.value
+                        }
+                      })}
+                      placeholder="e.g., Add Entry"
+                    />
+                    <Input
+                      label="Remove Button Label"
+                      value={config.repeaterConfig?.removeLabel ?? 'Remove'}
+                      onChange={(e) => updateConfig({
+                        repeaterConfig: {
+                          ...config.repeaterConfig,
+                          removeLabel: e.target.value
+                        }
+                      })}
+                      placeholder="e.g., Delete Entry"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Add Button Position
+                    </label>
+                    <select
+                      value={config.repeaterConfig?.addButtonPosition || 'bottom'}
+                      onChange={(e) => updateConfig({
+                        repeaterConfig: {
+                          ...config.repeaterConfig,
+                          addButtonPosition: e.target.value
+                        }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="top">Top (insert new items first)</option>
+                      <option value="bottom">Bottom (append new items)</option>
+                    </select>
+                  </div>
+
+                  <p className="text-xs text-gray-500">
+                    Users can add entries between the minimum and maximum limits. Customise button labels and choose
+                    whether the “Add” control sits above or below the entries.
+                  </p>
+                </div>
+              )}
+            </div>
+
           </>
         ) : (
           <>
@@ -182,10 +313,14 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 <option value="email">Email</option>
                 <option value="tel">Phone</option>
                 <option value="date">Date</option>
+                <option value="section">Nested Section</option>
                 <option value="textarea">Textarea</option>
                 <option value="select">Select Dropdown</option>
                 <option value="checkbox">Checkbox</option>
+                <option value="checkbox_group">Checkbox Group</option>
                 <option value="radio">Radio</option>
+                <option value="radio_group">Radio Group</option>
+                <option value="toggle">Toggle</option>
               </select>
             </div>
 
@@ -238,7 +373,7 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               />
             )}
 
-            {(config.type === 'select' || config.type === 'radio') && (
+            {(config.type === 'select' || config.type === 'radio' || config.type === 'checkbox_group' || config.type === 'radio_group') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Options</label>
                 <div className="space-y-2">
@@ -272,6 +407,186 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 >
                   <FiPlus className="mr-1" size={14} /> Add Option
                 </Button>
+              </div>
+            )}
+
+            {(config.type === 'checkbox_group' || config.type === 'radio_group') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Layout Orientation
+                </label>
+                <select
+                  value={config.orientation || 'horizontal'}
+                  onChange={(e) => updateConfig({ orientation: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="horizontal">Horizontal (Inline)</option>
+                  <option value="vertical">Vertical (Stacked)</option>
+                  <option value="question-answer">Question-Answer (Label Left, Options Right)</option>
+                  <option value="label-left">Label Left, Options Left</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose how the options should be displayed
+                </p>
+              </div>
+            )}
+
+            {config.type === 'section' && (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Nested Section:</strong> This creates a section within the current section. 
+                    After saving, you can add fields to this nested section just like a regular section.
+                  </p>
+                </div>
+
+                <Input
+                  label="Section Title"
+                  value={config.title || ''}
+                  onChange={(e) => updateConfig({ title: e.target.value })}
+                  placeholder="e.g., Contact Information"
+                  hint="Title shown at the top of the nested section"
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Description</label>
+                  <textarea
+                    value={config.description || ''}
+                    onChange={(e) => updateConfig({ description: e.target.value })}
+                    placeholder="Optional description for this section"
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <label className="flex items-center gap-2 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={config.type === 'section' && config.sectionType === 'repeater'}
+                      onChange={(e) => updateConfig({ 
+                        sectionType: e.target.checked ? 'repeater' : 'regular',
+                        repeaterConfig: e.target.checked ? {
+                          minRows: 1,
+                          maxRows: 10,
+                          addLabel: 'Add New',
+                          removeLabel: 'Remove',
+                          addButtonPosition: 'bottom'
+                        } : undefined
+                      })}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Make this a Repeater Section</span>
+                  </label>
+                  <p className="text-xs text-gray-500 ml-6 -mt-2 mb-3">
+                    Allow users to add multiple instances of this section's fields
+                  </p>
+
+                  {config.sectionType === 'repeater' && (
+                    <div className="ml-6 space-y-3 border-l-2 border-primary-200 pl-4">
+                      <Input
+                        label="Minimum Rows"
+                        type="number"
+                        value={config.repeaterConfig?.minRows || 1}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: { 
+                            ...config.repeaterConfig, 
+                            minRows: parseInt(e.target.value) || 1 
+                          }
+                        })}
+                        min="1"
+                        hint="Minimum number of rows required"
+                      />
+
+                      <Input
+                        label="Maximum Rows"
+                        type="number"
+                        value={config.repeaterConfig?.maxRows || 10}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: { 
+                            ...config.repeaterConfig, 
+                            maxRows: parseInt(e.target.value) || 10 
+                          }
+                        })}
+                        min="1"
+                        hint="Maximum number of rows allowed"
+                      />
+
+                      <Input
+                        label="Add Button Label"
+                        value={config.repeaterConfig?.addLabel || 'Add New'}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: { 
+                            ...config.repeaterConfig, 
+                            addLabel: e.target.value 
+                          }
+                        })}
+                        placeholder="e.g., Add Item, Add Row"
+                      />
+
+                      <Input
+                        label="Remove Button Label"
+                        value={config.repeaterConfig?.removeLabel || 'Remove'}
+                        onChange={(e) => updateConfig({
+                          repeaterConfig: { 
+                            ...config.repeaterConfig, 
+                            removeLabel: e.target.value 
+                          }
+                        })}
+                        placeholder="e.g., Remove, Delete"
+                      />
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Add Button Position
+                        </label>
+                        <select
+                          value={config.repeaterConfig?.addButtonPosition || 'bottom'}
+                          onChange={(e) => updateConfig({
+                            repeaterConfig: { 
+                              ...config.repeaterConfig, 
+                              addButtonPosition: e.target.value 
+                            }
+                          })}
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="top">Top</option>
+                          <option value="bottom">Bottom</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Nested Section Fields Management */}
+            {config.type === 'section' && (
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Fields in this Section</h4>
+                <p className="text-xs text-gray-500 mb-3">
+                  {(config.fields || []).length === 0 
+                    ? 'No fields added yet. Save this section first, then use the "Add Field" button in the form builder to add fields to it.' 
+                    : `This section contains ${config.fields.length} field${config.fields.length !== 1 ? 's' : ''}.`
+                  }
+                </p>
+                
+                {(config.fields || []).length > 0 && (
+                  <div className="space-y-2 bg-gray-50 dark:bg-gray-900 p-3 rounded border border-gray-200">
+                    {config.fields.map((nestedField, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                            {nestedField.label}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ({nestedField.type})
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -352,6 +667,7 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 placeholder="Optional help text shown below the field"
               />
             </div>
+
           </>
         )}
       </div>

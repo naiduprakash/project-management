@@ -123,7 +123,7 @@ export default function NewEntryPage() {
         />
         
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 min-h-0">
           {!selectedForm && page.forms && page.forms.length > 1 ? (
             <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex items-center justify-center">
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -147,12 +147,14 @@ export default function NewEntryPage() {
               </div>
             </div>
           ) : selectedForm ? (
-            <DynamicFormRenderer
-              form={selectedForm}
-              onSubmit={handleSubmit}
-              onSaveDraft={handleSaveDraft}
-              mode="create"
-            />
+            <div className="h-full">
+              <DynamicFormRenderer
+                form={selectedForm}
+                onSubmit={handleSubmit}
+                onSaveDraft={handleSaveDraft}
+                mode="create"
+              />
+            </div>
           ) : (
             <div className="px-4 sm:px-6 lg:px-8 py-8 h-full flex items-center justify-center">
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">

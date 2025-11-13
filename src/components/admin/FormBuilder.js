@@ -6,7 +6,7 @@ import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import RightResizableSidebar from '@/components/common/RightResizableSidebar'
 import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
-import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle, FiX, FiCopy } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiChevronLeft, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle, FiX, FiCopy, FiToggleLeft, FiLayers, FiMinus, FiMaximize2 } from 'react-icons/fi'
 import { v4 as uuidv4 } from 'uuid'
 import {
   DndContext,
@@ -30,7 +30,7 @@ import { CSS } from '@dnd-kit/utilities'
 /**
  * Sortable Field Component with Resizable Edges
  */
-const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderFieldPreview, onOpenConfig, onDelete, onDuplicate, columnSpan, onResize, onResizeComplete }) => {
+const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPath = [], renderFieldPreview, onOpenConfig, onDelete, onDuplicate, columnSpan, onResize, onResizeComplete }) => {
   const {
     attributes,
     listeners,
@@ -40,98 +40,19 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
     isDragging
   } = useSortable({ id })
 
-  const [isResizing, setIsResizing] = useState(false)
-  const [resizeEdge, setResizeEdge] = useState(null) // 'left' or 'right'
-  const [duplicateDisabled, setDuplicateDisabled] = useState(false) // <--- Add state
+  const [duplicateDisabled, setDuplicateDisabled] = useState(false)
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: isResizing ? 'none' : transition,
-    opacity: isDragging ? 0.2 : 1 // Make it very transparent when dragging
+    transition,
+    opacity: isDragging ? 0.2 : 1
   }
 
-  // Calculate column span class
-  const getColSpanClass = (span) => {
-    const spanMap = {
-      1: 'col-span-1',
-      2: 'col-span-2',
-      3: 'col-span-3',
-      4: 'col-span-4',
-      5: 'col-span-5',
-      6: 'col-span-6',
-      7: 'col-span-7',
-      8: 'col-span-8',
-      9: 'col-span-9',
-      10: 'col-span-10',
-      11: 'col-span-11',
-      12: 'col-span-12'
+  const handleResize = (newSpan) => {
+    if (onResizeComplete) {
+      const fullPath = [...fieldPath, fieldIndex]
+      onResizeComplete(pageIndex, sectionIndex, fullPath, newSpan)
     }
-    return spanMap[span] || 'col-span-12'
-  }
-
-  // Handle resize drag
-  const handleResizeStart = (edge) => (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsResizing(true)
-    setResizeEdge(edge)
-    
-    // Prevent text selection during drag
-    document.body.style.userSelect = 'none'
-    document.body.style.cursor = 'ew-resize'
-    
-    const startX = e.clientX
-    const startSpan = columnSpan
-    let lastSpan = startSpan
-    let finalSpan = startSpan
-
-    const handleMouseMove = (e) => {
-      e.preventDefault()
-      const deltaX = e.clientX - startX
-      // Each column is approximately 1/12 of the container width
-      // Get the actual container width for accurate calculation
-      const container = e.target.closest('.grid')
-      const containerWidth = container ? container.offsetWidth : 1000
-      const columnWidth = containerWidth / 12
-      const columnDelta = Math.round(deltaX / columnWidth)
-      
-      let newSpan = startSpan
-      if (edge === 'right') {
-        // Dragging right edge - increase span means move right
-        newSpan = Math.max(1, Math.min(12, startSpan + columnDelta))
-      } else if (edge === 'left') {
-        // Dragging left edge - dragging left means increase span (grow left)
-        // Note: negative deltaX (drag left) should increase span
-        newSpan = Math.max(1, Math.min(12, startSpan - columnDelta))
-      }
-      
-      // Only update if span actually changed to reduce re-renders
-      if (newSpan !== lastSpan && onResize) {
-        onResize(pageIndex, sectionIndex, fieldIndex, newSpan, edge, true) // true = isLive (don't auto-shift)
-        lastSpan = newSpan
-        finalSpan = newSpan
-      }
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-      setResizeEdge(null)
-      
-      // Restore normal behavior
-      document.body.style.userSelect = ''
-      document.body.style.cursor = ''
-      
-      // Call final resize with auto-shift enabled
-      if (onResizeComplete && finalSpan !== startSpan) {
-        onResizeComplete(pageIndex, sectionIndex, fieldIndex, finalSpan, edge)
-      }
-      
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
   }
 
   if (!field) return null
@@ -140,60 +61,16 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative group h-full ${isResizing ? 'z-50' : ''}`}
+      className="relative group h-full"
     >
-      {/* Drag Handle */}
-      {!isResizing && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10 bg-white dark:bg-gray-800 shadow-md rounded p-1 border border-gray-300 dark:border-gray-600"
-          title="Drag to reorder"
-        >
-          <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-        </div>
-      )}
-
-      {/* Resize Handle - Left */}
-      <div
-        onMouseDown={handleResizeStart('left')}
-        className={`absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 transition-all ${
-          isResizing && resizeEdge === 'left' 
-            ? 'bg-primary-500 opacity-100 w-1' 
-            : 'opacity-0 group-hover:opacity-60 hover:opacity-100 bg-primary-400'
-        }`}
-        title="Drag to resize left"
-        style={{ userSelect: 'none' }}
-      />
-
-      {/* Resize Handle - Right */}
-      <div
-        onMouseDown={handleResizeStart('right')}
-        className={`absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 transition-all ${
-          isResizing && resizeEdge === 'right' 
-            ? 'bg-primary-500 opacity-100 w-1' 
-            : 'opacity-0 group-hover:opacity-60 hover:opacity-100 bg-primary-400'
-        }`}
-        title="Drag to resize right"
-        style={{ userSelect: 'none' }}
-      />
-
       {/* Field Preview */}
       <div 
-        className={`relative border-2 border-dashed rounded-md p-2 transition-all select-none ${
-          isResizing ? 'border-primary-500 bg-primary-50 shadow-lg' : 'border-transparent group-hover:border-primary-300'
-        }`}
-        style={{ 
-          userSelect: isResizing ? 'none' : 'auto',
-          pointerEvents: isResizing ? 'none' : 'auto'
-        }}
+        className="relative border-2 border-dashed rounded-md p-2 transition-all select-none border-transparent group-hover:border-primary-300"
       >
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 select-none">
           {field.label}
           {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-          <span className={`ml-2 text-xs font-semibold ${
-            isResizing ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'
-          }`}>
+          <span className="ml-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
             ({columnSpan}/12)
           </span>
         </label>
@@ -203,15 +80,50 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
         )}
 
         {/* Overlay controls on hover */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+          >
+            <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+          
           <button
             type="button"
-            onClick={() => onOpenConfig(pageIndex, sectionIndex, fieldIndex)}
+            onClick={() => onOpenConfig(pageIndex, sectionIndex, fieldIndex, fieldPath)}
             className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             title="Configure field"
           >
             <FiSettings className="w-4 h-4 text-gray-700 dark:text-gray-300" />
           </button>
+          
+          {/* Decrease Width Button */}
+          {columnSpan > 1 && (
+            <button
+              type="button"
+              onClick={() => handleResize(columnSpan - 1)}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+              title="Decrease width"
+            >
+              <FiMinus className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            </button>
+          )}
+          
+          {/* Increase Width Button */}
+          {columnSpan < 12 && (
+            <button
+              type="button"
+              onClick={() => handleResize(columnSpan + 1)}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+              title="Increase width"
+            >
+              <FiMaximize2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </button>
+          )}
+          
           <button
             type="button"
             onClick={(e) => {
@@ -219,7 +131,7 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
               e.stopPropagation()
               setDuplicateDisabled(true)
               setTimeout(() => setDuplicateDisabled(false), 700) // Prevent rapid double triggers
-              onDuplicate(pageIndex, sectionIndex, fieldIndex)
+              onDuplicate(pageIndex, sectionIndex, fieldIndex, fieldPath)
             }}
             disabled={duplicateDisabled}
             className={`p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${duplicateDisabled ? 'opacity-50 pointer-events-none' : ''}`}
@@ -229,7 +141,7 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
           </button>
           <button
             type="button"
-            onClick={() => onDelete(pageIndex, sectionIndex, fieldIndex)}
+            onClick={() => onDelete(pageIndex, sectionIndex, fieldIndex, fieldPath)}
             className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             title="Delete field"
           >
@@ -289,6 +201,10 @@ const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
     { type: 'textarea', label: 'Textarea', icon: FiAlignLeft, description: 'Multi-line text', color: 'indigo' },
     { type: 'select', label: 'Dropdown', icon: FiChevronDown, description: 'Select from options', color: 'pink' },
     { type: 'checkbox', label: 'Checkbox', icon: FiCheckSquare, description: 'Yes/No checkbox', color: 'teal' },
+    { type: 'checkbox_group', label: 'Checkbox Group', icon: FiCheckSquare, description: 'Multiple checkboxes', color: 'cyan' },
+    { type: 'radio_group', label: 'Radio Group', icon: FiCircle, description: 'Choose one from options', color: 'yellow' },
+    { type: 'toggle', label: 'Toggle', icon: FiToggleLeft, description: 'On/Off toggle', color: 'lime' },
+    { type: 'section', label: 'Nested Section', icon: FiLayers, description: 'Group of fields (supports nesting & repeating)', color: 'violet' },
   ]
   
   return (
@@ -385,6 +301,473 @@ const DroppableCell = ({ id, row, col, isDragging, onHover }) => {
       }}
       title={`Row ${row}, Column ${col}`}
     />
+  )
+}
+
+
+/**
+ * Recursive Section Renderer - Handles both top-level and nested sections
+ */
+const RecursiveSectionContent = ({ 
+  section, 
+  pageIndex, 
+  sectionIndex, 
+  fieldPath = [], // Array tracking the path to nested field: [fieldIndex1, fieldIndex2, ...]
+  renderFieldPreview,
+  onStartAddingField,
+  onOpenFieldConfig,
+  onDeleteField,
+  onDuplicateField,
+  onResizeField,
+  activeId,
+  dragPreview,
+  setDragPreview
+}) => {
+  const fields = section.fields || []
+  const isNested = fieldPath.length > 0
+  
+  // Generate field ID for sortable context
+  const getFieldId = (fieldIndex) => {
+    // Always use consistent format with fieldPath (empty string for top-level)
+    const pathStr = fieldPath.length > 0 ? fieldPath.join('-') + '-' : ''
+    return `field-${pageIndex}-${sectionIndex}-${pathStr}${fieldIndex}`
+  }
+  
+  // Render grid with fields
+  const renderGrid = () => {
+    if (fields.length === 0) {
+      return (
+        <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+          <p className="text-gray-500 dark:text-gray-400 mb-3">No fields yet</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onStartAddingField(pageIndex, sectionIndex, fieldPath)}
+          >
+            <FiPlus className="mr-2" /> Add First Field
+          </Button>
+        </div>
+      )
+    }
+
+    // Calculate total rows needed (always add 1 extra row for dragging)
+    const maxRow = fields.reduce((max, field) =>
+      Math.max(max, field.gridRow || 1), 0
+    ) || 1
+    const totalRows = maxRow + 1 // Always show 1 extra row for drag targets
+
+    const rows = []
+
+    // Create each row explicitly (including empty rows for drag targets)
+    for (let row = 1; row <= totalRows; row++) {
+      const rowFields = fields.filter(f => (f.gridRow || 1) === row)
+      const cells = []
+
+      // Create all 12 columns for this row
+      for (let col = 1; col <= 12; col++) {
+        // Check if a field starts at this column
+        const fieldAtCol = rowFields.find(f => (f.gridColumn || 1) === col)
+
+        if (fieldAtCol) {
+          const fieldIndex = fields.indexOf(fieldAtCol)
+          const span = fieldAtCol.columnSpan || 4
+
+          cells.push(
+            <div
+              key={`field-${row}-${col}`}
+              className="relative"
+              style={{
+                gridColumn: `${col} / span ${span}`,
+                gridRow: row
+              }}
+            >
+              {fieldAtCol.type === 'section' ? (
+                // Render nested section with drag support
+                <SortableNestedSection
+                  id={getFieldId(fieldIndex)}
+                  field={fieldAtCol}
+                  pageIndex={pageIndex}
+                  sectionIndex={sectionIndex}
+                  fieldIndex={fieldIndex}
+                  fieldPath={[...fieldPath, fieldIndex]}
+                  columnSpan={span}
+                  renderFieldPreview={renderFieldPreview}
+                  onStartAddingField={onStartAddingField}
+                  onOpenFieldConfig={onOpenFieldConfig}
+                  onDeleteField={onDeleteField}
+                  onDuplicateField={onDuplicateField}
+                  onResizeField={onResizeField}
+                  activeId={activeId}
+                  dragPreview={dragPreview}
+                  setDragPreview={setDragPreview}
+                />
+              ) : (
+                // Render regular field with drag support
+                <SortableField
+                  id={getFieldId(fieldIndex)}
+                  field={fieldAtCol}
+                  pageIndex={pageIndex}
+                  sectionIndex={sectionIndex}
+                  fieldIndex={fieldIndex}
+                  fieldPath={fieldPath}
+                  columnSpan={span}
+                  renderFieldPreview={renderFieldPreview}
+                  onOpenConfig={onOpenFieldConfig}
+                  onDelete={onDeleteField}
+                  onDuplicate={onDuplicateField}
+                  onResize={onResizeField}
+                  onResizeComplete={onResizeField}
+                />
+              )}
+            </div>
+          )
+
+          // Skip the columns occupied by this field
+          col += span - 1
+        } else {
+          // Check if this column is occupied by a field that started earlier
+          const occupiedByField = rowFields.find(f => {
+            const fCol = f.gridColumn || 1
+            const fSpan = f.columnSpan || 4
+            return col >= fCol && col < fCol + fSpan
+          })
+
+          if (!occupiedByField) {
+            // Check if this is where the drag preview should show
+            const isPreviewLocation = dragPreview &&
+              dragPreview.pageIndex === pageIndex &&
+              dragPreview.sectionIndex === sectionIndex &&
+              JSON.stringify(dragPreview.fieldPath || []) === JSON.stringify(fieldPath) &&
+              dragPreview.row === row &&
+              col >= dragPreview.col &&
+              col < dragPreview.col + dragPreview.span
+
+            // Always render the droppable cell
+            cells.push(
+              <div
+                key={`empty-${row}-${col}`}
+                style={{
+                  gridColumn: col,
+                  gridRow: row,
+                  position: 'relative'
+                }}
+              >
+                {/* Droppable zone - always present */}
+                <DroppableCell
+                  id={`empty-${pageIndex}-${sectionIndex}-${fieldPath.length > 0 ? fieldPath.join('-') + '-' : ''}${row}-${col}`}
+                  row={row}
+                  col={col}
+                  isDragging={!!activeId}
+                  onHover={() => {
+                    if (dragPreview) {
+                      setDragPreview({
+                        ...dragPreview,
+                        pageIndex: pageIndex,
+                        sectionIndex: sectionIndex,
+                        fieldPath: fieldPath,
+                        row: row,
+                        col: col
+                      })
+                    }
+                  }}
+                />
+
+                {/* Visual preview overlay - only at preview start column */}
+                {isPreviewLocation && col === dragPreview.col && (() => {
+                  const canFit = col + dragPreview.span - 1 <= 12
+
+                  // Check if there are fields that would need shifting
+                  const activeFieldId = activeId?.split('-')
+                  // Check if dragging from same section/path
+                  const activeFieldPath = activeFieldId ? activeFieldId.slice(3, -1).map(Number).filter(n => !isNaN(n)) : []
+                  const isFromSameSection = activeFieldId &&
+                    activeFieldId[0] === 'field' &&
+                    Number(activeFieldId[1]) === pageIndex &&
+                    Number(activeFieldId[2]) === sectionIndex &&
+                    JSON.stringify(activeFieldPath) === JSON.stringify(fieldPath)
+
+                  const fieldsInWay = fields.filter((f, i) => {
+                    // Skip the field being moved if from same section
+                    if (isFromSameSection && i === Number(activeFieldId[activeFieldId.length - 1])) return false
+
+                    const fRow = f.gridRow || 1
+                    const fCol = f.gridColumn || 1
+                    const fSpan = f.columnSpan || 4
+                    const fEndCol = fCol + fSpan - 1
+                    const newFieldEndCol = col + dragPreview.span - 1
+
+                    // Check if on same row and overlaps
+                    if (fRow === row) {
+                      return (
+                        (fCol >= col && fCol <= newFieldEndCol) ||
+                        (fEndCol >= col && fEndCol <= newFieldEndCol) ||
+                        (fCol < col && fEndCol > newFieldEndCol)
+                      )
+                    }
+                    return false
+                  })
+
+                  const willShift = fieldsInWay.length > 0
+
+                  return (
+                    <div
+                      className={`absolute inset-0 border-4 border-dashed rounded-lg flex flex-col items-center justify-center shadow-xl z-50 pointer-events-none ${
+                        canFit
+                          ? (willShift ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : 'border-green-500 bg-green-50 dark:bg-green-900/20')
+                          : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                      }`}
+                      style={{
+                        width: `calc(${Math.min(dragPreview.span, 12 - col + 1)} * 100% + ${Math.min(dragPreview.span, 12 - col + 1) - 1} * 0.75rem)`,
+                        animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        left: 0,
+                        top: 0
+                      }}
+                    >
+                      <div className={`absolute inset-0 opacity-70 rounded-lg ${
+                        canFit
+                          ? (willShift ? 'bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-yellow-900/10' : 'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/10')
+                          : 'bg-gradient-to-br from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-900/10'
+                      }`} />
+                      <div className={`relative font-bold text-center z-10 ${
+                        canFit
+                          ? (willShift ? 'text-yellow-700 dark:text-yellow-300' : 'text-green-700 dark:text-green-300')
+                          : 'text-red-700 dark:text-red-300'
+                      }`}>
+                        <div className="text-4xl mb-2 animate-bounce">
+                          {canFit ? (willShift ? '⚠️' : '✓') : '✗'}
+                        </div>
+                        <p className="text-sm font-semibold">
+                          {canFit ? (willShift ? 'Will shift fields' : 'Drop here') : 'Not enough space'}
+                        </p>
+                        <p className="text-xs mt-1 opacity-75">
+                          {dragPreview.span} column{dragPreview.span > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )
+          }
+        }
+      }
+
+      rows.push(
+        <div key={row} className="grid grid-cols-12 gap-3" style={{ gridAutoRows: 'min-content' }}>
+          {cells}
+        </div>
+      )
+    }
+
+    return <div className="space-y-3">{rows}</div>
+  }
+
+  return (
+    <SortableContext
+      items={fields.map((f, i) => getFieldId(i))}
+      strategy={verticalListSortingStrategy}
+    >
+      {renderGrid()}
+      
+      {/* Add Field Button */}
+      {fields.length > 0 && (
+        <div className="mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onStartAddingField(pageIndex, sectionIndex, fieldPath)}
+          >
+            <FiPlus className="mr-2" /> Add Field
+          </Button>
+        </div>
+      )}
+    </SortableContext>
+  )
+}
+
+/**
+ * Sortable Nested Section Component - Wraps nested sections with drag support
+ */
+const SortableNestedSection = ({ 
+  id, 
+  field, 
+  pageIndex, 
+  sectionIndex, 
+  fieldIndex,
+  fieldPath,
+  columnSpan,
+  renderFieldPreview,
+  onStartAddingField,
+  onOpenFieldConfig,
+  onDeleteField,
+  onDuplicateField,
+  onResizeField,
+  activeId,
+  dragPreview,
+  setDragPreview
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.2 : 1
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <NestedSectionWrapper
+        field={field}
+        pageIndex={pageIndex}
+        sectionIndex={sectionIndex}
+        fieldIndex={fieldIndex}
+        fieldPath={fieldPath}
+        columnSpan={columnSpan}
+        renderFieldPreview={renderFieldPreview}
+        onStartAddingField={onStartAddingField}
+        onOpenFieldConfig={onOpenFieldConfig}
+        onDeleteField={onDeleteField}
+        onDuplicateField={onDuplicateField}
+        onResizeField={onResizeField}
+        activeId={activeId}
+        dragPreview={dragPreview}
+        setDragPreview={setDragPreview}
+        dragHandleProps={{ attributes, listeners }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Nested Section Wrapper - Wraps a section field with proper styling
+ */
+const NestedSectionWrapper = ({
+  field,
+  pageIndex,
+  sectionIndex,
+  fieldIndex,
+  fieldPath,
+  renderFieldPreview,
+  onStartAddingField,
+  onOpenFieldConfig,
+  onDeleteField,
+  onDuplicateField,
+  onResizeField,
+  activeId,
+  columnSpan,
+  dragPreview,
+  setDragPreview,
+  dragHandleProps
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const isRepeater = field.sectionType === 'repeater'
+
+  return (
+    <Card className="border-2 border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-900/10 relative group">
+      {/* Nested Section Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded transition-colors"
+        >
+          <FiChevronRight
+            className={`w-4 h-4 text-primary-600 dark:text-primary-400 transition-transform ${
+              isCollapsed ? '' : 'rotate-90'
+            }`}
+          />
+        </button>
+        <FiLayers className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+        <h3 className="text-sm font-semibold text-primary-900 dark:text-primary-100">
+          {field.title || field.label || 'Nested Section'}
+        </h3>
+        {isRepeater && (
+          <span className="px-2 py-0.5 text-xs font-medium bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 rounded">
+            Repeater
+          </span>
+        )}
+        {columnSpan && (
+          <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+            {columnSpan}/12
+          </span>
+        )}
+      </div>
+
+      {field.description && !isCollapsed && (
+        <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{field.description}</p>
+      )}
+
+      {/* Nested Section Content - Recursive */}
+      {!isCollapsed && (
+        <div className="mt-3">
+          <RecursiveSectionContent
+            section={field}
+            pageIndex={pageIndex}
+            sectionIndex={sectionIndex}
+            fieldPath={fieldPath}
+            renderFieldPreview={renderFieldPreview}
+            onStartAddingField={onStartAddingField}
+            onOpenFieldConfig={onOpenFieldConfig}
+            onDeleteField={onDeleteField}
+            onDuplicateField={onDuplicateField}
+            onResizeField={onResizeField}
+            activeId={activeId}
+            dragPreview={dragPreview}
+            setDragPreview={setDragPreview}
+          />
+        </div>
+      )}
+
+      {/* Action buttons - bottom left */}
+      <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+        {/* Drag Handle */}
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps.attributes}
+            {...dragHandleProps.listeners}
+            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+          >
+            <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => onOpenFieldConfig(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+          title="Configure"
+        >
+          <FiSettings className="w-4 h-4" />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => onDuplicateField(pageIndex, sectionIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+          title="Duplicate Section"
+        >
+          <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteField(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          title="Delete"
+        >
+          <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+        </button>
+      </div>
+    </Card>
   )
 }
 
@@ -730,15 +1113,16 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       id: uuidv4(),
       title: 'New Section',
       description: '',
-      fields: []
+      fields: [],
+      type: 'regular' // All sections start as regular, can be converted to repeater
     }
-    
+
     const updatedPages = [...formData.pages]
     updatedPages[pageIndex] = {
       ...updatedPages[pageIndex],
       sections: [...updatedPages[pageIndex].sections, newSection]
     }
-    
+
     setFormData({ ...formData, pages: updatedPages })
     // New sections are expanded by default
   }
@@ -770,28 +1154,44 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   // Field Management  
-  const handleAddField = (pageIndex, sectionIndex, fieldType = 'text') => {
+  const handleAddField = (pageIndex, sectionIndex, fieldType = 'text', fieldPath = []) => {
+    // Navigate to the target container using fieldPath
     const section = formData.pages[pageIndex].sections[sectionIndex]
+    
+    let targetContainer = section
+    let targetFields = section.fields
+    
+    // Navigate through nested sections using fieldPath
+    for (const fieldIndex of fieldPath) {
+      targetContainer = targetFields[fieldIndex]
+      targetFields = targetContainer.fields || []
+    }
     
     // Calculate next available position
     let nextRow = 0
     let nextCol = 1 // Grid columns are 1-indexed in CSS
     
-    if (section.fields.length > 0) {
+    if (targetFields.length > 0) {
       // Find the last field's position
-      const lastField = section.fields[section.fields.length - 1]
+      const lastField = targetFields[targetFields.length - 1]
       const lastRow = lastField.gridRow || 1
       const lastCol = lastField.gridColumn || 1
       const lastSpan = lastField.columnSpan || 4
       
-      // Try to place in same row if space available
-      if (lastCol + lastSpan - 1 + 4 <= 12) {
-        nextRow = lastRow
-        nextCol = lastCol + lastSpan
-      } else {
-        // Move to next row
+      // Nested sections (columnSpan 12) always start on a new row
+      if (fieldType === 'section') {
         nextRow = lastRow + 1
         nextCol = 1
+      } else {
+        // Try to place in same row if space available
+        if (lastCol + lastSpan - 1 + 4 <= 12) {
+          nextRow = lastRow
+          nextCol = lastCol + lastSpan
+        } else {
+          // Move to next row
+          nextRow = lastRow + 1
+          nextCol = 1
+        }
       }
     } else {
       nextRow = 1
@@ -801,21 +1201,59 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     const newField = {
       id: uuidv4(),
       name: `field_${Date.now()}`,
-      label: fieldType === 'text' ? 'Text Field' : fieldType === 'email' ? 'Email Address' : fieldType === 'number' ? 'Number' : fieldType === 'date' ? 'Date' : fieldType === 'textarea' ? 'Description' : fieldType === 'select' ? 'Select Option' : 'Checkbox',
+      label: fieldType === 'text' ? 'Text Field'
+        : fieldType === 'email' ? 'Email Address'
+        : fieldType === 'number' ? 'Number'
+        : fieldType === 'date' ? 'Date'
+        : fieldType === 'textarea' ? 'Description'
+        : fieldType === 'select' ? 'Select Option'
+        : fieldType === 'checkbox' ? 'Checkbox'
+        : fieldType === 'checkbox_group' ? 'Checkbox Group'
+        : fieldType === 'radio_group' ? 'Radio Group'
+        : fieldType === 'toggle' ? 'Toggle Switch'
+        : fieldType === 'section' ? 'Nested Section'
+        : 'Field',
       type: fieldType,
       required: false,
       placeholder: 'Enter value...',
       hint: '',
-      columnSpan: 4, // One-third width by default (4 out of 12 columns)
+      options: (fieldType === 'select' || fieldType === 'checkbox_group' || fieldType === 'radio_group') ? ['Option 1', 'Option 2'] : undefined,
+      // Section-specific properties
+      title: fieldType === 'section' ? 'Nested Section' : undefined,
+      description: fieldType === 'section' ? '' : undefined,
+      fields: fieldType === 'section' ? [] : undefined,
+      sectionType: fieldType === 'section' ? 'regular' : undefined,
+      columnSpan: fieldType === 'section' ? 12 : 4, // Full width for sections, one-third for regular fields
       gridRow: nextRow, // Explicit row position
       gridColumn: nextCol, // Explicit column start (1-12)
       validation: {}
     }
     
+    // Helper function to update nested structure
+    const updateNestedFields = (fields, path, newFieldsArray) => {
+      if (path.length === 0) {
+        return newFieldsArray
+      }
+      
+      const [currentIndex, ...restPath] = path
+      const updatedFields = [...fields]
+      updatedFields[currentIndex] = {
+        ...updatedFields[currentIndex],
+        fields: updateNestedFields(updatedFields[currentIndex].fields || [], restPath, newFieldsArray)
+      }
+      return updatedFields
+    }
+    
     const updatedPages = [...formData.pages]
+    const updatedFields = updateNestedFields(
+      section.fields,
+      fieldPath,
+      [...targetFields, newField]
+    )
+    
     updatedPages[pageIndex].sections[sectionIndex] = {
       ...section,
-      fields: [...section.fields, newField]
+      fields: updatedFields
     }
     
     setFormData({ ...formData, pages: updatedPages })
@@ -823,7 +1261,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     // Keep selector open for adding multiple fields - user can close it manually or add more fields
   }
   
-  const handleStartAddingField = (pageIndex, sectionIndex) => {
+  const handleStartAddingField = (pageIndex, sectionIndex, fieldPath = []) => {
     // Check if there are unsaved changes in current config
     if (editingConfig && configHasChanges) {
       if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
@@ -837,7 +1275,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       setConfigHasChanges(false)
     }
     
-    setAddingFieldTo({ pageIndex, sectionIndex })
+    setAddingFieldTo({ pageIndex, sectionIndex, fieldPath })
   }
   
   const handleCancelAddingField = () => {
@@ -857,10 +1295,100 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     setFormData({ ...formData, pages: updatedPages })
   }
 
-  const handleResizeField = (pageIndex, sectionIndex, fieldIndex, newSpan, edge = 'right', isLive = false) => {
+  // Helper function to resolve cascading collisions
+  const resolveCollisionsCascading = (fields, excludeIdx = -1) => {
+    // Helper to check if two fields overlap on the same row
+    const fieldsOverlap = (field1Row, field1Col, field1Span, field2Row, field2Col, field2Span) => {
+      if (field1Row !== field2Row) return false
+      
+      const field1EndCol = field1Col + field1Span - 1
+      const field2EndCol = field2Col + field2Span - 1
+      
+      return (
+        (field2Col >= field1Col && field2Col <= field1EndCol) || // Field2 starts within field1
+        (field2EndCol >= field1Col && field2EndCol <= field1EndCol) || // Field2 ends within field1
+        (field2Col < field1Col && field2EndCol > field1EndCol) // Field2 completely contains field1
+      )
+    }
+    
+    let currentFields = [...fields]
+    let hasChanges = true
+    let iterations = 0
+    const maxIterations = 100 // Prevent infinite loops
+    
+    while (hasChanges && iterations < maxIterations) {
+      hasChanges = false
+      iterations++
+      
+      // Check each field for collisions
+      for (let i = 0; i < currentFields.length; i++) {
+        if (i === excludeIdx) continue
+        
+        const currentField = currentFields[i]
+        const currentRow = currentField.gridRow || 1
+        const currentCol = currentField.gridColumn || 1
+        const currentSpan = currentField.columnSpan || 4
+        
+        // Check against all other fields on the same row
+        for (let j = 0; j < currentFields.length; j++) {
+          if (i === j || j === excludeIdx) continue
+          
+          const otherField = currentFields[j]
+          const otherRow = otherField.gridRow || 1
+          const otherCol = otherField.gridColumn || 1
+          const otherSpan = otherField.columnSpan || 4
+          
+          // Check for overlap
+          if (fieldsOverlap(currentRow, currentCol, currentSpan, otherRow, otherCol, otherSpan)) {
+            // Collision detected! Shift the field with higher index down
+            const fieldToShift = i > j ? i : j
+            const shiftedField = currentFields[fieldToShift]
+            const shiftedSpan = shiftedField.columnSpan || 4
+            const isShiftedFullWidth = shiftedSpan === 12 || shiftedField.type === 'section'
+            
+            // Move to next row, preserving column unless full-width
+            currentFields[fieldToShift] = {
+              ...shiftedField,
+              gridRow: currentRow + 1,
+              gridColumn: isShiftedFullWidth ? 1 : (shiftedField.gridColumn || 1)
+            }
+            
+            hasChanges = true
+            break
+          }
+        }
+        
+        if (hasChanges) break
+      }
+    }
+    
+    return currentFields
+  }
+
+  const handleResizeField = (pageIndex, sectionIndex, fieldPathOrIndex, newSpan, edge = 'right', isLive = false) => {
     const updatedPages = [...formData.pages]
-    const section = updatedPages[pageIndex].sections[sectionIndex]
-    const field = section.fields[fieldIndex]
+    
+    // Handle both old API (fieldIndex) and new API (fieldPath)
+    let fieldPath = []
+    let fieldIndex = 0
+    
+    if (Array.isArray(fieldPathOrIndex)) {
+      // New API: fieldPath is an array
+      fieldPath = fieldPathOrIndex
+      fieldIndex = fieldPath[fieldPath.length - 1]
+      fieldPath = fieldPath.slice(0, -1) // Remove the last element
+    } else {
+      // Old API: direct fieldIndex
+      fieldIndex = fieldPathOrIndex
+    }
+    
+    // Navigate to the correct container using fieldPath
+    let container = updatedPages[pageIndex].sections[sectionIndex]
+    for (const pathIdx of fieldPath) {
+      container = container.fields[pathIdx]
+    }
+    
+    const field = container.fields[fieldIndex]
     const fieldRow = field.gridRow || 1
     const fieldCol = field.gridColumn || 1
     const oldSpan = field.columnSpan || 4
@@ -888,7 +1416,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       }
     }
     
-    const updatedFields = [...section.fields]
+    let updatedFields = [...container.fields]
     
     // Update the field's span and column
     updatedFields[fieldIndex] = { 
@@ -897,21 +1425,32 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       gridColumn: newFieldCol
     }
     
-    // If growing and not in live preview mode, check for overlaps and shift fields
+    // If growing and not in live preview mode, check for overlaps and shift fields with cascading
     if (!isLive && adjustedSpan > oldSpan) {
       const newFieldEndCol = newFieldCol + adjustedSpan - 1
       
-      // Find fields on the same row that would overlap
-      section.fields.forEach((otherField, otherIdx) => {
+      // First pass: shift fields directly affected by the resize
+      container.fields.forEach((otherField, otherIdx) => {
         if (otherIdx === fieldIndex) return
         
         const otherRow = otherField.gridRow || 1
         const otherCol = otherField.gridColumn || 1
         const otherSpan = otherField.columnSpan || 4
         const otherEndCol = otherCol + otherSpan - 1
+        const isOtherFullWidth = otherSpan === 12 || otherField.type === 'section'
         
         // Only check fields on the same row
         if (otherRow === fieldRow) {
+          // Full-width fields (nested sections) always get pushed to next row
+          if (isOtherFullWidth) {
+            updatedFields[otherIdx] = {
+              ...otherField,
+              gridRow: fieldRow + 1,
+              gridColumn: 1
+            }
+            return
+          }
+          
           // Check if this field overlaps with the new position
           const hasOverlap = (
             (otherCol >= newFieldCol && otherCol <= newFieldEndCol) || // Other starts within new field
@@ -961,12 +1500,13 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           }
         }
       })
+      
+      // Second pass: resolve cascading collisions
+      updatedFields = resolveCollisionsCascading(updatedFields, fieldIndex)
     }
     
-    updatedPages[pageIndex].sections[sectionIndex] = {
-      ...section,
-      fields: updatedFields
-    }
+    // Update the container with the new fields
+    container.fields = updatedFields
     
     setFormData({ ...formData, pages: updatedPages })
   }
@@ -1100,22 +1640,25 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     setConfigHasChanges(false)
   }
 
-  const handleDeleteField = (pageIndex, sectionIndex, fieldIndex) => {
+  const handleDeleteField = (pageIndex, sectionIndex, fieldIndex, fieldPath = []) => {
     if (!confirm('Delete this field?')) return
     
     const updatedPages = [...formData.pages]
-    const section = updatedPages[pageIndex].sections[sectionIndex]
+    
+    // Navigate to the correct container using fieldPath
+    let container = updatedPages[pageIndex].sections[sectionIndex]
+    for (const pathIdx of fieldPath) {
+      container = container.fields[pathIdx]
+    }
     
     // Remove the field
-    const remainingFields = section.fields.filter((_, i) => i !== fieldIndex)
+    const remainingFields = container.fields.filter((_, i) => i !== fieldIndex)
     
     // Compact rows - remove empty rows and renumber
     const compactedFields = compactGridRows(remainingFields)
     
-    updatedPages[pageIndex].sections[sectionIndex] = {
-      ...section,
-      fields: compactedFields
-    }
+    // Update the container's fields
+    container.fields = compactedFields
     
     setFormData({ ...formData, pages: updatedPages })
   }
@@ -1289,11 +1832,22 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     // Extract field info for drag preview
     const activeData = event.active.id.split('-')
     if (activeData[0] === 'field') {
-      const [, pageIdx, sectionIdx, fieldIdx] = activeData.map(Number)
-      const field = formData.pages[pageIdx].sections[sectionIdx].fields[fieldIdx]
+      const pageIdx = Number(activeData[1])
+      const sectionIdx = Number(activeData[2])
+      const fieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+      const fieldIdx = Number(activeData[activeData.length - 1])
+      
+      // Navigate to field using fieldPath
+      let container = formData.pages[pageIdx].sections[sectionIdx]
+      for (const pathIdx of fieldPath) {
+        container = container.fields[pathIdx]
+      }
+      const field = container.fields[fieldIdx]
+      
       setDragPreview({
         pageIndex: pageIdx,
         sectionIndex: sectionIdx,
+        fieldPath: fieldPath,
         row: field.gridRow || 1,
         col: field.gridColumn || 1,
         span: field.columnSpan || 4
@@ -1310,22 +1864,39 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     
     if (overData[0] === 'field') {
       // Hovering over an existing field - swap position
-      const [, pageIdx, sectionIdx, fieldIdx] = overData.map(Number)
-      const targetField = formData.pages[pageIdx].sections[sectionIdx].fields[fieldIdx]
+      const pageIdx = Number(overData[1])
+      const sectionIdx = Number(overData[2])
+      const fieldPath = overData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+      const fieldIdx = Number(overData[overData.length - 1])
+      
+      // Navigate to field using fieldPath
+      let container = formData.pages[pageIdx].sections[sectionIdx]
+      for (const pathIdx of fieldPath) {
+        container = container.fields[pathIdx]
+      }
+      const targetField = container.fields[fieldIdx]
+      
       setDragPreview({
         ...dragPreview,
         pageIndex: pageIdx,
         sectionIndex: sectionIdx,
+        fieldPath: fieldPath,
         row: targetField.gridRow || 1,
         col: targetField.gridColumn || 1
       })
     } else if (overData[0] === 'empty') {
       // Hovering over an empty cell
-      const [, pageIdx, sectionIdx, row, col] = overData.map(Number)
+      const pageIdx = Number(overData[1])
+      const sectionIdx = Number(overData[2])
+      const fieldPath = overData.slice(3, -2).map(Number).filter(n => !isNaN(n))
+      const row = Number(overData[overData.length - 2])
+      const col = Number(overData[overData.length - 1])
+      
       setDragPreview({
         ...dragPreview,
         pageIndex: pageIdx,
         sectionIndex: sectionIdx,
+        fieldPath: fieldPath,
         row: row,
         col: col
       })
@@ -1339,7 +1910,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
 
     if (!over || active.id === over.id) return
 
-    // Parse drag item IDs (format: "field-pageIdx-sectionIdx-fieldIdx" or "section-pageIdx-sectionIdx" or "empty-pageIdx-sectionIdx-row-col")
+    // Parse drag item IDs 
+    // Formats:
+    // - Field: "field-pageIdx-sectionIdx-fieldIdx" or "field-pageIdx-sectionIdx-path1-path2-...-fieldIdx"
+    // - Section: "section-pageIdx-sectionIdx"
+    // - Empty: "empty-pageIdx-sectionIdx-row-col" or "empty-pageIdx-sectionIdx-path1-path2-...-row-col"
     const activeData = active.id.split('-')
     const overData = over.id.split('-')
 
@@ -1356,57 +1931,214 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleFieldDrop = (activeData, overData) => {
-    const [, activePageIdx, activeSectionIdx, activeFieldIdx] = activeData.map(Number)
-    const [, overPageIdx, overSectionIdx, overFieldIdx] = overData.map(Number)
+    // Parse field IDs - format: field-pageIdx-sectionIdx-[fieldPath...]-fieldIdx
+    // Extract indices: first 3 are type, pageIdx, sectionIdx; last is fieldIdx; middle are fieldPath
+    const activePageIdx = Number(activeData[1])
+    const activeSectionIdx = Number(activeData[2])
+    const activeFieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const activeFieldIdx = Number(activeData[activeData.length - 1])
+    
+    const overPageIdx = Number(overData[1])
+    const overSectionIdx = Number(overData[2])
+    const overFieldPath = overData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const overFieldIdx = Number(overData[overData.length - 1])
 
     const updatedPages = [...formData.pages]
     
-    // Get the fields (create copies to avoid mutation issues)
-    const movingField = { ...updatedPages[activePageIdx].sections[activeSectionIdx].fields[activeFieldIdx] }
-    const targetField = { ...updatedPages[overPageIdx].sections[overSectionIdx].fields[overFieldIdx] }
+    // Navigate to the source container using fieldPath
+    let sourceContainer = updatedPages[activePageIdx].sections[activeSectionIdx]
+    for (const pathIdx of activeFieldPath) {
+      sourceContainer = sourceContainer.fields[pathIdx]
+    }
+    let sourceFields = sourceContainer.fields || []
     
-    // Store original positions
-    const movingRow = movingField.gridRow || 1
-    const movingCol = movingField.gridColumn || 1
-    const targetRow = targetField.gridRow || 1
-    const targetCol = targetField.gridColumn || 1
-    
-    // Swap grid positions
-    movingField.gridRow = targetRow
-    movingField.gridColumn = targetCol
-    
-    targetField.gridRow = movingRow
-    targetField.gridColumn = movingCol
-    
-    // Update in place
-    if (activePageIdx === overPageIdx && activeSectionIdx === overSectionIdx) {
-      // Same section - just swap the fields
-      const newFields = [...updatedPages[activePageIdx].sections[activeSectionIdx].fields]
-      newFields[activeFieldIdx] = movingField
-      newFields[overFieldIdx] = targetField
-      updatedPages[activePageIdx].sections[activeSectionIdx].fields = newFields
-    } else {
-      // Different sections - move the field and keep target
-      updatedPages[activePageIdx].sections[activeSectionIdx].fields = 
-        updatedPages[activePageIdx].sections[activeSectionIdx].fields.filter((_, i) => i !== activeFieldIdx)
+    // Navigate to the target container using fieldPath
+    let targetContainer = updatedPages[overPageIdx].sections[overSectionIdx]
+    for (const pathIdx of overFieldPath) {
+      targetContainer = targetContainer.fields[pathIdx]
+    }
+    let targetFields = targetContainer.fields || []
+
+    // Check if moving within same container
+    const isSameContainer = activePageIdx === overPageIdx && 
+                           activeSectionIdx === overSectionIdx &&
+                           JSON.stringify(activeFieldPath) === JSON.stringify(overFieldPath)
+
+    const movingField = { ...sourceFields[activeFieldIdx] }
+    const movingFieldSpan = movingField.columnSpan || 4
+    const isMovingFieldFullWidth = movingFieldSpan === 12 || movingField.type === 'section'
+
+    if (isSameContainer) {
+      // Same container
+      const targetField = { ...sourceFields[overFieldIdx] }
+      const targetRow = targetField.gridRow || 1
+      const targetCol = targetField.gridColumn || 1
+      const targetFieldSpan = targetField.columnSpan || 4
+      const isTargetFieldFullWidth = targetFieldSpan === 12 || targetField.type === 'section'
       
-      updatedPages[overPageIdx].sections[overSectionIdx].fields = [
-        ...updatedPages[overPageIdx].sections[overSectionIdx].fields,
-        movingField
-      ]
+      if (isMovingFieldFullWidth) {
+        // Moving field is full-width - shift all fields on target row down
+        movingField.gridRow = targetRow
+        movingField.gridColumn = 1
+        
+        const newFields = sourceFields.map((field, idx) => {
+          if (idx === activeFieldIdx) return movingField
+          
+          const fieldRow = field.gridRow || 1
+          const fieldCol = field.gridColumn || 1
+          
+          // Shift all fields on target row to next row
+          if (fieldRow === targetRow && idx !== activeFieldIdx) {
+            return { ...field, gridRow: targetRow + 1, gridColumn: fieldCol }
+          }
+          
+          return field
+        })
+        
+        sourceContainer.fields = newFields
+      } else if (isTargetFieldFullWidth) {
+        // Target is full-width, moving field is regular
+        // Place moving field at target row, push target full-width field down
+        const movingRow = movingField.gridRow || 1
+        
+        movingField.gridRow = targetRow
+        movingField.gridColumn = 1 // Start at column 1
+        
+        targetField.gridRow = targetRow + 1
+        targetField.gridColumn = 1
+        
+        const newFields = [...sourceFields]
+        newFields[activeFieldIdx] = movingField
+        newFields[overFieldIdx] = targetField
+        
+        sourceContainer.fields = newFields
+      } else {
+        // Regular swap
+        const movingRow = movingField.gridRow || 1
+        const movingCol = movingField.gridColumn || 1
+        
+        // Swap grid positions
+        movingField.gridRow = targetRow
+        movingField.gridColumn = targetCol
+        
+        targetField.gridRow = movingRow
+        targetField.gridColumn = movingCol
+        
+        // Swap the fields in the array
+        const newFields = [...sourceFields]
+        newFields[activeFieldIdx] = movingField
+        newFields[overFieldIdx] = targetField
+        
+        sourceContainer.fields = newFields
+      }
+    } else {
+      // Different containers
+      const targetField = { ...targetFields[overFieldIdx] }
+      const targetRow = targetField.gridRow || 1
+      const targetCol = targetField.gridColumn || 1
+      const targetFieldSpan = targetField.columnSpan || 4
+      const isTargetFieldFullWidth = targetFieldSpan === 12 || targetField.type === 'section'
+      
+      if (isMovingFieldFullWidth) {
+        // Moving field is full-width - shift all fields on target row down
+        movingField.gridRow = targetRow
+        movingField.gridColumn = 1
+        
+        // Remove from source
+        sourceContainer.fields = sourceFields.filter((_, i) => i !== activeFieldIdx)
+        
+        // Update target - shift all fields on target row
+        const newTargetFields = targetFields.map((field, idx) => {
+          const fieldRow = field.gridRow || 1
+          const fieldCol = field.gridColumn || 1
+          
+          if (fieldRow === targetRow) {
+            return { ...field, gridRow: targetRow + 1, gridColumn: fieldCol }
+          }
+          
+          return field
+        })
+        
+        // Add the moving field
+        newTargetFields.push(movingField)
+        targetContainer.fields = newTargetFields
+      } else if (isTargetFieldFullWidth) {
+        // Target is full-width, moving field is regular
+        const movingRow = movingField.gridRow || 1
+        
+        movingField.gridRow = targetRow
+        movingField.gridColumn = 1 // Start at column 1
+        
+        targetField.gridRow = targetRow + 1
+        targetField.gridColumn = 1
+        
+        // Remove from source and add target field
+        const newSourceFields = [...sourceFields]
+        newSourceFields[activeFieldIdx] = targetField
+        sourceContainer.fields = newSourceFields
+        
+        // Replace target field with moving field
+        const newTargetFields = [...targetFields]
+        newTargetFields[overFieldIdx] = movingField
+        targetContainer.fields = newTargetFields
+      } else {
+        // Regular swap between containers
+        const movingRow = movingField.gridRow || 1
+        const movingCol = movingField.gridColumn || 1
+        
+        movingField.gridRow = targetRow
+        movingField.gridColumn = targetCol
+        
+        targetField.gridRow = movingRow
+        targetField.gridColumn = movingCol
+        
+        // Update source container (replace moving field with target field)
+        const newSourceFields = [...sourceFields]
+        newSourceFields[activeFieldIdx] = targetField
+        sourceContainer.fields = newSourceFields
+        
+        // Update target container (replace target field with moving field)
+        const newTargetFields = [...targetFields]
+        newTargetFields[overFieldIdx] = movingField
+        targetContainer.fields = newTargetFields
+      }
     }
     
     setFormData({ ...formData, pages: updatedPages })
   }
 
   const handleFieldDropOnEmpty = (activeData, overData) => {
-    const [, activePageIdx, activeSectionIdx, activeFieldIdx] = activeData.map(Number)
-    const [, targetPageIdx, targetSectionIdx, targetRow, targetCol] = overData.map(Number)
+    // Parse field IDs - format: field-pageIdx-sectionIdx-[fieldPath...]-fieldIdx
+    const activePageIdx = Number(activeData[1])
+    const activeSectionIdx = Number(activeData[2])
+    const activeFieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const activeFieldIdx = Number(activeData[activeData.length - 1])
+    
+    // Parse empty cell IDs - format: empty-pageIdx-sectionIdx-[fieldPath...]-row-col
+    const targetPageIdx = Number(overData[1])
+    const targetSectionIdx = Number(overData[2])
+    const targetFieldPath = overData.slice(3, -2).map(Number).filter(n => !isNaN(n))
+    const targetRow = Number(overData[overData.length - 2])
+    const targetCol = Number(overData[overData.length - 1])
 
     const updatedPages = [...formData.pages]
     
+    // Navigate to the source container using fieldPath
+    let sourceContainer = updatedPages[activePageIdx].sections[activeSectionIdx]
+    for (const pathIdx of activeFieldPath) {
+      sourceContainer = sourceContainer.fields[pathIdx]
+    }
+    let sourceFields = sourceContainer.fields || []
+    
+    // Navigate to the target container using fieldPath
+    let targetContainer = updatedPages[targetPageIdx].sections[targetSectionIdx]
+    for (const pathIdx of targetFieldPath) {
+      targetContainer = targetContainer.fields[pathIdx]
+    }
+    let targetFields = targetContainer.fields || []
+    
     // Get the field being moved (create a copy to avoid mutation)
-    const movingField = { ...updatedPages[activePageIdx].sections[activeSectionIdx].fields[activeFieldIdx] }
+    const movingField = { ...sourceFields[activeFieldIdx] }
     const fieldSpan = movingField.columnSpan || 4
     
     // Check if field can fit at target position (basic check)
@@ -1416,16 +2148,18 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       return
     }
     
-    // Get the target section
-    let targetSection = updatedPages[targetPageIdx].sections[targetSectionIdx]
+    // Check if moving within same container
+    const isSameContainer = activePageIdx === targetPageIdx && 
+                           activeSectionIdx === targetSectionIdx &&
+                           JSON.stringify(activeFieldPath) === JSON.stringify(targetFieldPath)
     
-    // If moving within the same section, we need to exclude the moving field from collision detection
-    const isMovingWithinSection = activePageIdx === targetPageIdx && activeSectionIdx === targetSectionIdx
+    // Get fields to check for collisions (exclude moving field if same container)
+    let fieldsToCheck = isSameContainer 
+      ? targetFields.filter((_, i) => i !== activeFieldIdx)
+      : [...targetFields]
     
-    // Get all fields in the target section (excluding the moving field if same section)
-    let fieldsToCheck = isMovingWithinSection 
-      ? targetSection.fields.filter((_, i) => i !== activeFieldIdx)
-      : targetSection.fields
+    // Check if the moving field is full-width (nested section)
+    const isMovingFieldFullWidth = fieldSpan === 12 || movingField.type === 'section'
     
     // Check for collisions and shift fields if needed
     const newFieldEndCol = targetCol + fieldSpan - 1
@@ -1435,9 +2169,20 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       const fieldCol = field.gridColumn || 1
       const fieldSpanSize = field.columnSpan || 4
       const fieldEndCol = fieldCol + fieldSpanSize - 1
+      const isFieldFullWidth = fieldSpanSize === 12 || field.type === 'section'
       
       // Check if this field is on the same row and would overlap
       if (fieldRow === targetRow) {
+        // If moving field is full-width, ALL fields on target row must be shifted down
+        if (isMovingFieldFullWidth) {
+          return { ...field, gridRow: targetRow + 1, gridColumn: fieldCol }
+        }
+        
+        // Full-width fields (nested sections) always get pushed to next row
+        if (isFieldFullWidth) {
+          return { ...field, gridRow: targetRow + 1, gridColumn: 1 }
+        }
+        
         // Check for overlap: field occupies some space that the new field needs
         const hasOverlap = (
           (fieldCol >= targetCol && fieldCol <= newFieldEndCol) || // Field starts within new field
@@ -1466,23 +2211,20 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     movingField.gridRow = targetRow
     movingField.gridColumn = targetCol
     
-    // Reconstruct the fields array
-    if (isMovingWithinSection) {
-      // Same section - update the moving field and apply shifted fields
+    if (isSameContainer) {
+      // Moving within the same container
       const newFields = [...fieldsToCheck]
       newFields.splice(activeFieldIdx, 0, movingField) // Insert at original index
-      updatedPages[activePageIdx].sections[activeSectionIdx].fields = newFields
+      // Resolve cascading collisions
+      sourceContainer.fields = resolveCollisionsCascading(newFields, activeFieldIdx)
     } else {
-      // Different sections
-      // Remove from source section
-      updatedPages[activePageIdx].sections[activeSectionIdx].fields = 
-        updatedPages[activePageIdx].sections[activeSectionIdx].fields.filter((_, i) => i !== activeFieldIdx)
-      
-      // Add to target section with shifted fields
-      updatedPages[targetPageIdx].sections[targetSectionIdx].fields = [
-        ...fieldsToCheck,
-        movingField
-      ]
+      // Moving to a different container
+      // Remove from source
+      sourceContainer.fields = sourceFields.filter((_, i) => i !== activeFieldIdx)
+      // Add to target with shifted fields
+      const combinedFields = [...fieldsToCheck, movingField]
+      // Resolve cascading collisions (no index to exclude in target)
+      targetContainer.fields = resolveCollisionsCascading(combinedFields)
     }
     
     setFormData({ ...formData, pages: updatedPages })
@@ -1715,13 +2457,161 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           </label>
         )
       
-      case 'radio':
+      case 'checkbox_group':
+        if (field.orientation === 'question-answer') {
+          return (
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="flex-shrink-0">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                  {field.label}
+                  {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                </span>
+              </div>
+              <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
+                <div className="flex flex-wrap gap-4 sm:justify-end">
+                  {(field.options || ['Yes', 'No']).map((opt, i) => {
+                    const optLabel = typeof opt === 'object' ? opt.label : opt
+                    return (
+                      <label key={i} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          disabled
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        }
+        if (field.orientation === 'label-left') {
+          return (
+            <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+              <div className="flex-shrink-0">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                  {field.label}
+                  {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                </span>
+              </div>
+              <div className="flex-1 mt-1 sm:mt-0">
+                <div className="flex flex-wrap gap-4">
+                  {(field.options || ['Yes', 'No']).map((opt, i) => {
+                    const optLabel = typeof opt === 'object' ? opt.label : opt
+                    return (
+                      <label key={i} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          disabled
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        }
         return (
-          <div className="space-y-2">
+          <div className={`${
+            field.orientation === 'horizontal'
+              ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
+              : 'space-y-2'
+          }`}>
             {(field.options || ['Option 1', 'Option 2']).map((opt, i) => {
               const optLabel = typeof opt === 'object' ? opt.label : opt
               return (
-                <label key={i} className="flex items-center gap-2">
+                <label key={i} className={`flex items-center gap-2 cursor-pointer ${
+                  field.orientation === 'horizontal' ? 'min-w-0' : ''
+                }`}>
+                  <input
+                    type="checkbox"
+                    disabled
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                </label>
+              )
+            })}
+          </div>
+        )
+      case 'radio_group':
+        if (field.orientation === 'question-answer') {
+          return (
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="flex-shrink-0">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                  {field.label}
+                  {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                </span>
+              </div>
+              <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
+                <div className="flex flex-wrap gap-4 sm:justify-end">
+                  {(field.options || ['Yes', 'No']).map((opt, i) => {
+                    const optLabel = typeof opt === 'object' ? opt.label : opt
+                    return (
+                      <label key={i} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`preview-${field.name}`}
+                          disabled
+                          className="border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        }
+        if (field.orientation === 'label-left') {
+          return (
+            <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+              <div className="flex-shrink-0">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+                  {field.label}
+                  {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
+                </span>
+              </div>
+              <div className="flex-1 mt-1 sm:mt-0">
+                <div className="flex flex-wrap gap-4">
+                  {(field.options || ['Yes', 'No']).map((opt, i) => {
+                    const optLabel = typeof opt === 'object' ? opt.label : opt
+                    return (
+                      <label key={i} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`preview-${field.name}`}
+                          disabled
+                          className="border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        }
+        return (
+          <div className={`${
+            field.orientation === 'horizontal'
+              ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
+              : 'space-y-2'
+          }`}>
+            {(field.options || ['Option 1', 'Option 2']).map((opt, i) => {
+              const optLabel = typeof opt === 'object' ? opt.label : opt
+              return (
+                <label key={i} className={`flex items-center gap-2 cursor-pointer ${
+                  field.orientation === 'horizontal' ? 'min-w-0' : ''
+                }`}>
                   <input
                     type="radio"
                     name={field.name}
@@ -1734,7 +2624,23 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             })}
           </div>
         )
+      case 'toggle':
+        return (
+          <label className="flex items-center gap-3">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Off</span>
+            <input
+              type="checkbox"
+              disabled
+              className="appearance-none w-11 h-6 bg-gray-200 rounded-full checked:bg-primary-600 transition-colors relative before:absolute before:content-[''] before:block before:w-5 before:h-5 before:bg-white before:rounded-full before:shadow-md before:left-0 checked:before:translate-x-full before:transition-transform"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">On</span>
+          </label>
+        )
       
+      case 'section':
+        // Nested sections are handled by RecursiveSectionContent - shouldn't reach here
+        return <div className="text-gray-500 italic">Nested Section (rendered separately)</div>
+
       default:
         return (
           <input
@@ -1857,221 +2763,31 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                       onOpenConfig={handleOpenSectionConfig}
                       onDelete={handleDeleteSection}
                     >
-                      {/* Fields - Explicit 12 Column Grid */}
-                      <SortableContext
-                        items={section.fields.map((f, i) => `field-${currentPageIndex}-${sectionIndex}-${i}`)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="mb-3 pl-4 relative">
-                          
-                          {(() => {
-                            // Calculate total rows needed (always add 1 extra row for dragging)
-                            const maxRow = section.fields.reduce((max, field) => 
-                              Math.max(max, field.gridRow || 1), 0
-                            ) || 1
-                            
-                            const totalRows = maxRow + 1 // Always show 1 extra row for drag targets
-                            
-                            const rows = []
-                            
-                            // Create each row explicitly (including empty rows for drag targets)
-                            for (let row = 1; row <= totalRows; row++) {
-                              const rowFields = section.fields.filter(f => (f.gridRow || 1) === row)
-                              const cells = []
-                              
-                              // Create all 12 columns for this row
-                              for (let col = 1; col <= 12; col++) {
-                                // Check if a field starts at this column
-                                const fieldAtCol = rowFields.find(f => (f.gridColumn || 1) === col)
-                                
-                                if (fieldAtCol) {
-                                  const fieldIndex = section.fields.indexOf(fieldAtCol)
-                                  const span = fieldAtCol.columnSpan || 4
-                                  
-                                  cells.push(
-                                    <div
-                                      key={`field-${row}-${col}`}
-                                      className="relative"
-                                      style={{
-                                        gridColumn: `${col} / span ${span}`,
-                                        gridRow: row
-                                      }}
-                                    >
-                                      <SortableField
-                                        id={`field-${currentPageIndex}-${sectionIndex}-${fieldIndex}`}
-                                        field={fieldAtCol}
-                                        pageIndex={currentPageIndex}
-                                        sectionIndex={sectionIndex}
-                                        fieldIndex={fieldIndex}
-                                        columnSpan={span}
-                                        renderFieldPreview={renderFieldPreview}
-                                        onOpenConfig={handleOpenFieldConfig}
-                                        onDelete={handleDeleteField}
-                                        onDuplicate={handleDuplicateField}
-                                        onResize={handleResizeField}
-                                        onResizeComplete={handleResizeField}
-                                      />
-                                    </div>
-                                  )
-                                  
-                                  // Skip the columns occupied by this field
-                                  col += span - 1
-                                } else {
-                                  // Check if this column is occupied by a field that started earlier
-                                  const occupiedByField = rowFields.find(f => {
-                                    const fCol = f.gridColumn || 1
-                                    const fSpan = f.columnSpan || 4
-                                    return col >= fCol && col < fCol + fSpan
-                                  })
-                                  
-                                  if (!occupiedByField) {
-                                    // Check if this is where the drag preview should show
-                                    const isPreviewLocation = dragPreview &&
-                                      dragPreview.pageIndex === currentPageIndex &&
-                                      dragPreview.sectionIndex === sectionIndex &&
-                                      dragPreview.row === row &&
-                                      col >= dragPreview.col &&
-                                      col < dragPreview.col + dragPreview.span
-                                    
-                                    // Always render the droppable cell
-                                    cells.push(
-                                      <div
-                                        key={`empty-${row}-${col}`}
-                                        style={{
-                                          gridColumn: col,
-                                          gridRow: row,
-                                          position: 'relative'
-                                        }}
-                                      >
-                                        {/* Droppable zone - always present */}
-                                        <DroppableCell
-                                          id={`empty-${currentPageIndex}-${sectionIndex}-${row}-${col}`}
-                                          row={row}
-                                          col={col}
-                                          isDragging={!!activeId}
-                                          onHover={() => {
-                                            if (dragPreview) {
-                                              setDragPreview({
-                                                ...dragPreview,
-                                                pageIndex: currentPageIndex,
-                                                sectionIndex: sectionIndex,
-                                                row: row,
-                                                col: col
-                                              })
-                                            }
-                                          }}
-                                        />
-                                        
-                                        {/* Visual preview overlay - only at preview start column */}
-                                        {isPreviewLocation && col === dragPreview.col && (() => {
-                                          const canFit = col + dragPreview.span - 1 <= 12
-                                          
-                                          // Check if there are fields that would need shifting
-                                          const activeFieldId = activeId?.split('-')
-                                          const isFromSameSection = activeFieldId && 
-                                            activeFieldId[0] === 'field' &&
-                                            Number(activeFieldId[1]) === currentPageIndex &&
-                                            Number(activeFieldId[2]) === sectionIndex
-                                          
-                                          const fieldsInWay = section.fields.filter((f, i) => {
-                                            // Skip the field being moved if from same section
-                                            if (isFromSameSection && i === Number(activeFieldId[3])) return false
-                                            
-                                            const fRow = f.gridRow || 1
-                                            const fCol = f.gridColumn || 1
-                                            const fSpan = f.columnSpan || 4
-                                            const fEndCol = fCol + fSpan - 1
-                                            const newFieldEndCol = col + dragPreview.span - 1
-                                            
-                                            // Check if on same row and overlaps
-                                            if (fRow === row) {
-                                              return (
-                                                (fCol >= col && fCol <= newFieldEndCol) ||
-                                                (fEndCol >= col && fEndCol <= newFieldEndCol) ||
-                                                (fCol < col && fEndCol > newFieldEndCol)
-                                              )
-                                            }
-                                            return false
-                                          })
-                                          
-                                          const willShift = fieldsInWay.length > 0
-                                          
-                                          return (
-                                            <div
-                                              className={`absolute inset-0 border-4 border-dashed rounded-lg flex flex-col items-center justify-center shadow-xl z-50 pointer-events-none ${
-                                                canFit 
-                                                  ? (willShift ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50')
-                                                  : 'border-red-500 bg-red-50'
-                                              }`}
-                                              style={{
-                                                width: `calc(${Math.min(dragPreview.span, 12 - col + 1)} * 100% + ${Math.min(dragPreview.span, 12 - col + 1) - 1} * 1rem)`,
-                                                animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                                                left: 0,
-                                                top: 0
-                                              }}
-                                            >
-                                              <div className={`absolute inset-0 opacity-70 rounded-lg ${
-                                                canFit 
-                                                  ? (willShift ? 'bg-gradient-to-br from-yellow-100 to-yellow-50' : 'bg-gradient-to-br from-green-100 to-green-50')
-                                                  : 'bg-gradient-to-br from-red-100 to-red-50'
-                                              }`} />
-                                              <div className={`relative font-bold text-center z-10 ${
-                                                canFit 
-                                                  ? (willShift ? 'text-yellow-700' : 'text-green-700')
-                                                  : 'text-red-700'
-                                              }`}>
-                                                <div className="text-4xl mb-2 animate-bounce">
-                                                  {canFit ? (willShift ? '⇄' : '↓') : '✕'}
-                                                </div>
-                                                <div className="text-base mb-1">
-                                                  {canFit ? (willShift ? 'Will Shift Fields' : 'Drop Here') : 'Won\'t Fit'}
-                                                </div>
-                                                <div className="flex flex-col items-center gap-1 mt-1">
-                                                  <div className={`text-white text-xs font-bold px-2 py-1 rounded-full ${
-                                                    canFit 
-                                                      ? (willShift ? 'bg-yellow-600' : 'bg-green-600')
-                                                      : 'bg-red-600'
-                                                  }`}>
-                                                    {dragPreview.span} / 12 cols
-                                                  </div>
-                                                  {willShift && (
-                                                    <div className="text-xs text-yellow-800 mt-1">
-                                                      {fieldsInWay.length} field{fieldsInWay.length > 1 ? 's' : ''} will move
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          )
-                                        })()}
-                                      </div>
-                                    )
-                                  }
-                                }
-                              }
-                              
-                              rows.push(
-                                <div key={`row-${row}`} className="grid grid-cols-12 gap-3 mb-3">
-                                  {cells}
-                                </div>
-                              )
-                            }
-                            
-                            return rows
-                          })()}
+                      {/* Fields - Using Recursive Render */}
+                      {section.type === 'repeater' && (
+                        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 text-[10px] font-bold">
+                            R
+                          </span>
+                          Repeatable group preview — this section will repeat as a set when users add new items.
                         </div>
-                      </SortableContext>
-
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleStartAddingField(currentPageIndex, sectionIndex)}
-                        >
-                          <FiPlus className="mr-1" /> Add Field
-                        </Button>
-                      </div>
+                      )}
+                      
+                      <RecursiveSectionContent
+                        section={section}
+                        pageIndex={currentPageIndex}
+                        sectionIndex={sectionIndex}
+                        fieldPath={[]}
+                        renderFieldPreview={renderFieldPreview}
+                        onStartAddingField={handleStartAddingField}
+                        onOpenFieldConfig={handleOpenFieldConfig}
+                        onDeleteField={handleDeleteField}
+                        onDuplicateField={handleDuplicateField}
+                        onResizeField={handleResizeField}
+                        activeId={activeId}
+                        dragPreview={dragPreview}
+                        setDragPreview={setDragPreview}
+                      />
                     </SortableSection>
                   </div>
                 ))}
@@ -2178,9 +2894,24 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       {/* Field Type Selector or Field/Section Config Panel */}
       {addingFieldTo ? (
         <FieldTypeSelectorPanel
-          sectionTitle={formData.pages[addingFieldTo.pageIndex]?.sections[addingFieldTo.sectionIndex]?.title}
+          sectionTitle={
+            addingFieldTo.fieldPath && addingFieldTo.fieldPath.length > 0
+              ? (() => {
+                  let container = formData.pages[addingFieldTo.pageIndex]?.sections[addingFieldTo.sectionIndex]
+                  for (const idx of addingFieldTo.fieldPath) {
+                    container = container?.fields?.[idx]
+                  }
+                  return container?.title || container?.label || 'Nested Section'
+                })()
+              : formData.pages[addingFieldTo.pageIndex]?.sections[addingFieldTo.sectionIndex]?.title
+          }
           onSelect={(fieldType) => {
-            handleAddField(addingFieldTo.pageIndex, addingFieldTo.sectionIndex, fieldType)
+            handleAddField(
+              addingFieldTo.pageIndex, 
+              addingFieldTo.sectionIndex, 
+              fieldType,
+              addingFieldTo.fieldPath || []
+            )
             // Keep selector open for adding multiple fields
           }}
           onClose={handleCancelAddingField}
