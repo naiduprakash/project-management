@@ -6,7 +6,7 @@ import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import RightResizableSidebar from '@/components/common/RightResizableSidebar'
 import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
-import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle, FiX, FiCopy } from 'react-icons/fi'
 import { v4 as uuidv4 } from 'uuid'
 import {
   DndContext,
@@ -30,7 +30,7 @@ import { CSS } from '@dnd-kit/utilities'
 /**
  * Sortable Field Component with Resizable Edges
  */
-const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderFieldPreview, onOpenConfig, onDelete, columnSpan, onResize, onResizeComplete }) => {
+const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderFieldPreview, onOpenConfig, onDelete, onDuplicate, columnSpan, onResize, onResizeComplete }) => {
   const {
     attributes,
     listeners,
@@ -42,6 +42,7 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
 
   const [isResizing, setIsResizing] = useState(false)
   const [resizeEdge, setResizeEdge] = useState(null) // 'left' or 'right'
+  const [duplicateDisabled, setDuplicateDisabled] = useState(false) // <--- Add state
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -189,7 +190,7 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
       >
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 select-none">
           {field.label}
-          {field.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
+          {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
           <span className={`ml-2 text-xs font-semibold ${
             isResizing ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'
           }`}>
@@ -210,6 +211,21 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, renderF
             title="Configure field"
           >
             <FiSettings className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setDuplicateDisabled(true)
+              setTimeout(() => setDuplicateDisabled(false), 700) // Prevent rapid double triggers
+              onDuplicate(pageIndex, sectionIndex, fieldIndex)
+            }}
+            disabled={duplicateDisabled}
+            className={`p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${duplicateDisabled ? 'opacity-50 pointer-events-none' : ''}`}
+            title="Duplicate field"
+          >
+            <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </button>
           <button
             type="button"
@@ -239,7 +255,7 @@ const DragOverlayField = ({ field, columnSpan }) => {
       <div className="flex items-center justify-between mb-2">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {field.label}
-          {field.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
+          {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
         </label>
         <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 px-2 py-1 rounded">
           {columnSpan}/12
@@ -251,9 +267,9 @@ const DragOverlayField = ({ field, columnSpan }) => {
 }
 
 /**
- * Field Type Selector - Visual picker for field types
+ * Field Type Selector Panel - Right panel for selecting field types (matches FieldConfigPanel style)
  */
-const FieldTypeSelector = ({ onSelect, onClose }) => {
+const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
   // ESC key handler
   useEffect(() => {
     const handleEsc = (e) => {
@@ -276,41 +292,53 @@ const FieldTypeSelector = ({ onSelect, onClose }) => {
   ]
   
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 z-40"
-        onClick={onClose}
-      />
-      
-      {/* Popover */}
-      <div 
-        className="absolute z-50 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-2 border-gray-200 dark:border-gray-700"
-        style={{ minWidth: '400px', maxWidth: '500px' }}
-      >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Select Field Type</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Choose the type of field you want to add</p>
+    <div className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto">
+      {/* Header */}
+      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Add Field
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+            {sectionTitle ? `Adding to: ${sectionTitle}` : 'Choose the type of field you want to add'}
+          </p>
         </div>
+        <button
+          onClick={onClose}
+          className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+        >
+          <FiX size={20} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Select a field type to add to your form. You can add multiple fields without closing this panel.
+        </p>
         
-        <div className="p-3 grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
+        <div className="space-y-3">
           {fieldTypes.map((fieldType) => {
             const Icon = fieldType.icon
             return (
               <button
                 key={fieldType.type}
-                onClick={() => onSelect(fieldType.type)}
-                className="group p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-left"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onSelect(fieldType.type)
+                }}
+                className="w-full group p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-left"
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-md bg-primary-100 dark:bg-primary-900/30 group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition-colors">
+                  <div className="p-2 rounded-md bg-primary-100 dark:bg-primary-900/30 group-hover:bg-primary-200 dark:group-hover:bg-primary-900/50 transition-colors flex-shrink-0">
                     <Icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {fieldType.label}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {fieldType.description}
                     </div>
                   </div>
@@ -319,17 +347,15 @@ const FieldTypeSelector = ({ onSelect, onClose }) => {
             )
           })}
         </div>
-        
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
-          <button
-            onClick={onClose}
-            className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            Cancel (ESC)
-          </button>
-        </div>
       </div>
-    </>
+
+      {/* Footer */}
+      <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+        <Button variant="outline" onClick={onClose} className="w-full">
+          Cancel (ESC)
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -512,8 +538,9 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const [configHasChanges, setConfigHasChanges] = useState(false)
   const [activeId, setActiveId] = useState(null) // For drag overlay
   const [dragPreview, setDragPreview] = useState(null) // { pageIndex, sectionIndex, row, col, span }
-  const [showFieldTypeSelector, setShowFieldTypeSelector] = useState(null) // { pageIndex, sectionIndex }
+  const [addingFieldTo, setAddingFieldTo] = useState(null) // { pageIndex, sectionIndex } - null when not adding
   const sectionRefs = useRef({})
+  const isDuplicatingRef = useRef(false) // Prevent multiple simultaneous duplicates
   
   // Drag and drop sensors
   const sensors = useSensors(
@@ -793,8 +820,28 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     
     setFormData({ ...formData, pages: updatedPages })
     
-    // Don't close selector or auto-open config - allows quick multiple field additions
-    // Selector will close when user clicks outside or presses ESC
+    // Keep selector open for adding multiple fields - user can close it manually or add more fields
+  }
+  
+  const handleStartAddingField = (pageIndex, sectionIndex) => {
+    // Check if there are unsaved changes in current config
+    if (editingConfig && configHasChanges) {
+      if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
+        return
+      }
+    }
+    
+    // Close config panel if open
+    if (editingConfig) {
+      setEditingConfig(null)
+      setConfigHasChanges(false)
+    }
+    
+    setAddingFieldTo({ pageIndex, sectionIndex })
+  }
+  
+  const handleCancelAddingField = () => {
+    setAddingFieldTo(null)
   }
 
   const handleUpdateField = (pageIndex, sectionIndex, fieldIndex, updates) => {
@@ -943,6 +990,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       }
     }
     
+    // Cancel adding field if active
+    if (addingFieldTo) {
+      setAddingFieldTo(null)
+    }
+    
     setEditingConfig({
       type: 'page',
       pageIndex,
@@ -969,6 +1021,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
         return
       }
+    }
+    
+    // Cancel adding field if active
+    if (addingFieldTo) {
+      setAddingFieldTo(null)
     }
     
     setEditingConfig({
@@ -999,6 +1056,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       if (!confirm('You have unsaved changes. Switching will discard them. Continue?')) {
         return
       }
+    }
+    
+    // Cancel adding field if active
+    if (addingFieldTo) {
+      setAddingFieldTo(null)
     }
     
     setEditingConfig({
@@ -1077,6 +1139,136 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       gridRow: rowMapping[field.gridRow || 1]
     }))
   }
+
+  // Improved compactGridColumns: assigns columns left-to-right, wraps to next row if span exceeds 12
+  const compactGridColumns = (fields) => {
+    if (fields.length === 0) return fields;
+
+    let currentRow = 1;
+    let nextCol = 1;
+    const newFields = [];
+
+    fields.forEach((field) => {
+      const span = field.columnSpan || 4;
+      // Always assign, do not reuse any prior value
+      if (nextCol + span - 1 > 12) {
+        currentRow++;
+        nextCol = 1;
+      }
+      newFields.push({
+        ...field,
+        gridRow: currentRow,
+        gridColumn: nextCol
+      });
+      nextCol += span;
+    });
+
+    // DIAGNOSTIC: Warn if any two fields have the same gridRow+gridColumn
+    const seen = new Set();
+    newFields.forEach(f => {
+      const key = `${f.gridRow}:${f.gridColumn}`;
+      if (seen.has(key)) {
+        console.warn('Duplicate grid position found after normalization:', key, newFields);
+      }
+      seen.add(key);
+    });
+
+    return newFields;
+  };
+
+  const handleDuplicateField = (pageIndex, sectionIndex, fieldIndex) => {
+    // DIAGNOSTIC LOG (watch console for double/triple triggers)
+    const fieldName = formData?.pages?.[pageIndex]?.sections?.[sectionIndex]?.fields?.[fieldIndex]?.name
+    console.log('[DUPLICATE] Triggered at', new Date().toISOString(), 'page', pageIndex, 'section', sectionIndex, 'fieldIndex', fieldIndex, 'name', fieldName)
+    if (isDuplicatingRef.current) {
+      return;
+    }
+    isDuplicatingRef.current = true;
+
+    setFormData(prevFormData => {
+      // Deep copy the entire form data structure to avoid any shared references
+      const updatedPages = prevFormData.pages.map(page => ({
+        ...page,
+        sections: page.sections.map(section => ({ ...section, fields: [...section.fields] }))
+      }));
+      const section = updatedPages[pageIndex].sections[sectionIndex];
+      const fieldToDuplicate = section.fields[fieldIndex];
+
+      if (!fieldToDuplicate) {
+        isDuplicatingRef.current = false;
+        return prevFormData;
+      }
+
+      const duplicateId = uuidv4();
+      // Count existing copies for intelligent label/name numbering
+      const baseLabel = fieldToDuplicate.label.replace(/\s*\(Copy( \d+)?\)\s*$/, '');
+      const baseName = fieldToDuplicate.name.replace(/_copy(_\d+)?$/, '');
+      let maxCopyNumber = 1;
+      let maxNameCopyNumber = 1;
+      section.fields.forEach(f => {
+        const match = f.label.match(new RegExp(`^${baseLabel} \\(Copy( \\d+)?\\)$`));
+        if (match) {
+          const num = match[1] ? parseInt(match[1].replace(' ', ''), 10) : 1;
+          if (num >= maxCopyNumber) maxCopyNumber = num + 1;
+        }
+        const nameMatch = f.name.match(new RegExp(`^${baseName}_copy(_(\\d+))?$`));
+        if (nameMatch) {
+          const num = nameMatch[2] ? parseInt(nameMatch[2], 10) : 1;
+          if (num >= maxNameCopyNumber) maxNameCopyNumber = num + 1;
+        }
+      });
+      
+      const copyLabel = maxCopyNumber === 2 ? `${baseLabel} (Copy 2)` :
+                        maxCopyNumber > 2 ? `${baseLabel} (Copy ${maxCopyNumber})` : `${baseLabel} (Copy)`;
+      const copyName = maxNameCopyNumber === 2 ? `${baseName}_copy_2` :
+                       maxNameCopyNumber > 2 ? `${baseName}_copy_${maxNameCopyNumber}` : `${baseName}_copy`;
+
+      const duplicatedField = {
+        ...fieldToDuplicate,
+        id: duplicateId,
+        name: copyName,
+        label: copyLabel,
+        columnSpan: fieldToDuplicate.columnSpan || 4
+      };
+
+      // Insert the duplicate right after the original (no mutation)
+      const newFields = [
+        ...section.fields.slice(0, fieldIndex + 1),
+        duplicatedField,
+        ...section.fields.slice(fieldIndex + 1),
+      ];
+      // Remove accidental double-insertion by id
+      const seen = new Set();
+      const uniqueFields = [];
+      for (const f of newFields) {
+        if (!seen.has(f.id)) {
+          uniqueFields.push(f);
+          seen.add(f.id);
+        } else {
+          // log warning if we filtered out a duplicate by id
+          console.warn('Filtered accidental duplicate field by id (dev safety):', f);
+        }
+      }
+
+      // First compact rows, then ensure columns are unique and compact.
+      let compactedFields = compactGridRows(uniqueFields);
+      compactedFields = compactGridColumns(compactedFields);
+
+      updatedPages[pageIndex].sections[sectionIndex] = {
+        ...section,
+        fields: compactedFields
+      };
+
+      setTimeout(() => {
+        isDuplicatingRef.current = false;
+      }, 50);
+
+      return {
+        ...prevFormData,
+        pages: updatedPages
+      };
+    });
+  };
 
   const handleMoveField = (pageIndex, sectionIndex, fieldIndex, direction) => {
     const newIndex = direction === 'up' ? fieldIndex - 1 : fieldIndex + 1
@@ -1465,8 +1657,9 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   // Helper to render field preview (as users will see it)
+  // Note: Label and hint are rendered in SortableField wrapper, so we don't render them here
   const renderFieldPreview = (field, pageIndex, sectionIndex, fieldIndex) => {
-    // Render fields exactly as they appear in the DynamicFormRenderer
+    // Render fields without labels/hints since they're shown in the SortableField wrapper
     // This provides a true WYSIWYG experience for admins
     
     switch (field.type) {
@@ -1475,147 +1668,81 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       case 'number':
       case 'date':
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <input
-              type={field.type || 'text'}
-              placeholder={field.placeholder || ''}
-              disabled
-              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
-            />
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
-          </div>
+          <input
+            type={field.type || 'text'}
+            placeholder={field.placeholder || ''}
+            disabled
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
+          />
         )
       
       case 'textarea':
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <textarea
-              placeholder={field.placeholder || ''}
-              rows={field.rows || 4}
-              disabled
-              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
-            />
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
-          </div>
+          <textarea
+            placeholder={field.placeholder || ''}
+            rows={field.rows || 4}
+            disabled
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
+          />
         )
       
       case 'select':
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <select 
-              disabled
-              className="px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500"
-            >
-              <option value="">Select {field.label || 'an option'}</option>
-              {(field.options || []).map((opt, i) => {
-                const optValue = typeof opt === 'object' ? opt.value : opt
-                const optLabel = typeof opt === 'object' ? opt.label : opt
-                return (
-                  <option key={i} value={optValue}>{optLabel}</option>
-                )
-              })}
-            </select>
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
-          </div>
+          <select 
+            disabled
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
+          >
+            <option value="">Select {field.label || 'an option'}</option>
+            {(field.options || []).map((opt, i) => {
+              const optValue = typeof opt === 'object' ? opt.value : opt
+              const optLabel = typeof opt === 'object' ? opt.label : opt
+              return (
+                <option key={i} value={optValue}>{optLabel}</option>
+              )
+            })}
+          </select>
         )
       
       case 'checkbox':
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                disabled
-                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{field.placeholder || 'Check this box'}</span>
-            </label>
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
-          </div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              disabled
+              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">{field.placeholder || 'Check this box'}</span>
+          </label>
         )
       
       case 'radio':
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <div className="space-y-2">
-              {(field.options || ['Option 1', 'Option 2']).map((opt, i) => {
-                const optLabel = typeof opt === 'object' ? opt.label : opt
-                return (
-                  <label key={i} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name={field.name}
-                      disabled
-                      className="border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
-                  </label>
-                )
-              })}
-            </div>
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
+          <div className="space-y-2">
+            {(field.options || ['Option 1', 'Option 2']).map((opt, i) => {
+              const optLabel = typeof opt === 'object' ? opt.label : opt
+              return (
+                <label key={i} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={field.name}
+                    disabled
+                    className="border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{optLabel}</span>
+                </label>
+              )
+            })}
           </div>
         )
       
       default:
         return (
-          <div className="flex flex-col gap-1 w-full">
-            {field.label && (
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {field.label}
-                {field.validation?.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
-              </label>
-            )}
-            <input
-              type="text"
-              placeholder={field.placeholder || ''}
-              disabled
-              className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
-            />
-            {field.hint && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
-            )}
-          </div>
+          <input
+            type="text"
+            placeholder={field.placeholder || ''}
+            disabled
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600"
+          />
         )
     }
   }
@@ -1655,7 +1782,13 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                     >
                       <button
                         type="button"
-                        onClick={() => setCurrentPageIndex(index)}
+                        onClick={() => {
+                          setCurrentPageIndex(index)
+                          // Cancel adding field when switching pages
+                          if (addingFieldTo) {
+                            setAddingFieldTo(null)
+                          }
+                        }}
                         className={`text-sm font-medium transition-colors whitespace-nowrap ${
                           currentPageIndex === index
                             ? 'text-primary-600'
@@ -1774,6 +1907,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                                         renderFieldPreview={renderFieldPreview}
                                         onOpenConfig={handleOpenFieldConfig}
                                         onDelete={handleDeleteField}
+                                        onDuplicate={handleDuplicateField}
                                         onResize={handleResizeField}
                                         onResizeComplete={handleResizeField}
                                       />
@@ -1933,20 +2067,10 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setShowFieldTypeSelector({ pageIndex: currentPageIndex, sectionIndex })}
+                          onClick={() => handleStartAddingField(currentPageIndex, sectionIndex)}
                         >
                           <FiPlus className="mr-1" /> Add Field
                         </Button>
-                        
-                        {/* Field Type Selector Popover */}
-                        {showFieldTypeSelector && 
-                         showFieldTypeSelector.pageIndex === currentPageIndex && 
-                         showFieldTypeSelector.sectionIndex === sectionIndex && (
-                          <FieldTypeSelector
-                            onSelect={(fieldType) => handleAddField(currentPageIndex, sectionIndex, fieldType)}
-                            onClose={() => setShowFieldTypeSelector(null)}
-                          />
-                        )}
                       </div>
                     </SortableSection>
                   </div>
@@ -1981,7 +2105,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             <>
               {!isCollapsed && (
                 <div className="h-full p-4 overflow-y-auto">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                     Sections ({currentPage.sections?.length || 0})
                   </h3>
                   
@@ -1998,42 +2122,44 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                           onClick={() => scrollToSection(sectionId)}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-all ${
                             isActive
-                              ? 'bg-primary-50 border-2 border-primary-500 ring-2 ring-primary-100'
-                              : 'hover:bg-gray-50 border-2 border-transparent'
+                              ? 'bg-primary-50 border-2 border-primary-500 ring-2 ring-primary-100 dark:bg-primary-900/20 dark:border-primary-400'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-2 border-transparent'
                           }`}
                         >
                           <div className="flex items-start gap-2">
                             {/* Status Icon */}
                             <div className="mt-0.5 flex-shrink-0">
                               {status === 'valid' && (
-                                <FiCheckCircle className="w-4 h-4 text-green-600" />
+                                <FiCheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                               )}
                               {status === 'empty' && (
-                                <FiCircle className="w-4 h-4 text-gray-400" />
+                                <FiCircle className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                               )}
                               {status === 'error' && (
-                                <FiAlertCircle className="w-4 h-4 text-red-600" />
+                                <FiAlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                               )}
                             </div>
                             
                             {/* Section Title */}
                             <div className="flex-1 min-w-0">
                               <div className={`text-sm font-medium truncate ${
-                                isActive ? 'text-primary-700' : 'text-gray-700'
+                                isActive 
+                                  ? 'text-primary-700 dark:text-primary-300' 
+                                  : 'text-gray-700 dark:text-gray-300'
                               }`}>
                                 {section.title}
                               </div>
                               
                               {/* Field Count */}
-                              <div className="text-xs text-gray-500 mt-0.5">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 {section.fields?.length || 0} fields
                               </div>
                               
                               {/* Viewing Indicator */}
                               {isActive && (
                                 <div className="flex items-center gap-1 mt-1">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
-                                  <span className="text-xs font-medium text-primary-600">Viewing</span>
+                                  <div className="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400 animate-pulse" />
+                                  <span className="text-xs font-medium text-primary-600 dark:text-primary-400">Viewing</span>
                                 </div>
                               )}
                             </div>
@@ -2049,8 +2175,17 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         </RightResizableSidebar>
       )}
 
-      {/* Field/Section Config Panel */}
-      {editingConfig && (
+      {/* Field Type Selector or Field/Section Config Panel */}
+      {addingFieldTo ? (
+        <FieldTypeSelectorPanel
+          sectionTitle={formData.pages[addingFieldTo.pageIndex]?.sections[addingFieldTo.sectionIndex]?.title}
+          onSelect={(fieldType) => {
+            handleAddField(addingFieldTo.pageIndex, addingFieldTo.sectionIndex, fieldType)
+            // Keep selector open for adding multiple fields
+          }}
+          onClose={handleCancelAddingField}
+        />
+      ) : editingConfig && (
         <FieldConfigPanel
           field={editingConfig.data}
           type={editingConfig.type}
