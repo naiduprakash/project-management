@@ -6,7 +6,7 @@ import Input from '@/components/common/Input'
 import Card from '@/components/common/Card'
 import RightResizableSidebar from '@/components/common/RightResizableSidebar'
 import FieldConfigPanel from '@/components/admin/FieldConfigPanel'
-import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiChevronLeft, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle, FiX, FiCopy, FiToggleLeft, FiLayers, FiMinus, FiMaximize2 } from 'react-icons/fi'
+import { FiPlus, FiTrash2, FiSettings, FiChevronRight, FiChevronLeft, FiMove, FiMenu, FiType, FiHash, FiCalendar, FiAlignLeft, FiCheckSquare, FiChevronDown, FiMail, FiCheckCircle, FiCircle, FiAlertCircle, FiX, FiCopy, FiToggleLeft, FiLayers, FiMinus, FiMaximize2, FiFolder, FiInfo } from 'react-icons/fi'
 import { v4 as uuidv4 } from 'uuid'
 import {
   DndContext,
@@ -26,6 +26,13 @@ import {
   useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+
+// Custom styles for section/tab hover actions
+const hoverStyles = `
+  .hover-parent:hover > .section-actions {
+    opacity: 1;
+  }
+`
 
 /**
  * Sortable Field Component with Resizable Edges
@@ -65,7 +72,7 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
     >
       {/* Field Preview */}
       <div 
-        className="relative border-2 border-dashed rounded-md p-2 transition-all select-none border-transparent group-hover:border-primary-300"
+        className="relative border-2 border-dashed rounded-md p-2 transition-all select-none border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-500"
       >
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 select-none">
           {field.label}
@@ -101,28 +108,26 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
           </button>
           
           {/* Decrease Width Button */}
-          {columnSpan > 1 && (
-            <button
-              type="button"
-              onClick={() => handleResize(columnSpan - 1)}
-              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
-              title="Decrease width"
-            >
-              <FiMinus className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleResize(columnSpan - 1)}
+            disabled={columnSpan <= 1}
+            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
+            title={columnSpan <= 1 ? "Minimum width reached" : "Decrease width"}
+          >
+            <FiMinus className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+          </button>
           
           {/* Increase Width Button */}
-          {columnSpan < 12 && (
-            <button
-              type="button"
-              onClick={() => handleResize(columnSpan + 1)}
-              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-              title="Increase width"
-            >
-              <FiMaximize2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleResize(columnSpan + 1)}
+            disabled={columnSpan >= 12}
+            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
+            title={columnSpan >= 12 ? "Maximum width reached" : "Increase width"}
+          >
+            <FiMaximize2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </button>
           
           <button
             type="button"
@@ -204,7 +209,9 @@ const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
     { type: 'checkbox_group', label: 'Checkbox Group', icon: FiCheckSquare, description: 'Multiple checkboxes', color: 'cyan' },
     { type: 'radio_group', label: 'Radio Group', icon: FiCircle, description: 'Choose one from options', color: 'yellow' },
     { type: 'toggle', label: 'Toggle', icon: FiToggleLeft, description: 'On/Off toggle', color: 'lime' },
+    { type: 'info', label: 'Text Display', icon: FiInfo, description: 'Customizable text (heading, info, warning, etc)', color: 'sky' },
     { type: 'section', label: 'Nested Section', icon: FiLayers, description: 'Group of fields (supports nesting & repeating)', color: 'violet' },
+    { type: 'tab', label: 'Nested Tabs', icon: FiFolder, description: 'Nested tab pages with sections (tabs within tabs)', color: 'amber' },
   ]
   
   return (
@@ -304,6 +311,15 @@ const DroppableCell = ({ id, row, col, isDragging, onHover }) => {
   )
 }
 
+/**
+ * Helper to parse field path from ID (handles mixed string/number paths)
+ */
+const parseFieldPathFromId = (pathParts) => {
+  return pathParts.map(part => {
+    const num = Number(part)
+    return !isNaN(num) ? num : part // Keep strings as strings, numbers as numbers
+  })
+}
 
 /**
  * Recursive Section Renderer - Handles both top-level and nested sections
@@ -319,9 +335,12 @@ const RecursiveSectionContent = ({
   onDeleteField,
   onDuplicateField,
   onResizeField,
+  onUpdateField,
   activeId,
   dragPreview,
-  setDragPreview
+  setDragPreview,
+  onAddSectionToNestedTab,
+  onDeleteSectionFromNestedTab
 }) => {
   const fields = section.fields || []
   const isNested = fieldPath.length > 0
@@ -398,7 +417,33 @@ const RecursiveSectionContent = ({
                   onDeleteField={onDeleteField}
                   onDuplicateField={onDuplicateField}
                   onResizeField={onResizeField}
+                  onUpdateField={onUpdateField}
                   activeId={activeId}
+                  dragPreview={dragPreview}
+                  setDragPreview={setDragPreview}
+                  onAddSectionToNestedTab={onAddSectionToNestedTab}
+                  onDeleteSectionFromNestedTab={onDeleteSectionFromNestedTab}
+                />
+              ) : fieldAtCol.type === 'tab' ? (
+                // Render nested tabs with drag support
+                <SortableNestedTabs
+                  id={getFieldId(fieldIndex)}
+                  field={fieldAtCol}
+                  pageIndex={pageIndex}
+                  sectionIndex={sectionIndex}
+                  fieldIndex={fieldIndex}
+                  fieldPath={[...fieldPath, fieldIndex]}
+                  columnSpan={span}
+                  onOpenFieldConfig={onOpenFieldConfig}
+                  onDeleteField={onDeleteField}
+                  onDuplicateField={onDuplicateField}
+                  onUpdateField={onUpdateField}
+                  activeId={activeId}
+                  onAddSection={onAddSectionToNestedTab}
+                  onDeleteSection={onDeleteSectionFromNestedTab}
+                  renderFieldPreview={renderFieldPreview}
+                  onStartAddingField={onStartAddingField}
+                  onResizeField={onResizeField}
                   dragPreview={dragPreview}
                   setDragPreview={setDragPreview}
                 />
@@ -480,7 +525,7 @@ const RecursiveSectionContent = ({
                   // Check if there are fields that would need shifting
                   const activeFieldId = activeId?.split('-')
                   // Check if dragging from same section/path
-                  const activeFieldPath = activeFieldId ? activeFieldId.slice(3, -1).map(Number).filter(n => !isNaN(n)) : []
+                  const activeFieldPath = activeFieldId ? parseFieldPathFromId(activeFieldId.slice(3, -1)) : []
                   const isFromSameSection = activeFieldId &&
                     activeFieldId[0] === 'field' &&
                     Number(activeFieldId[1]) === pageIndex &&
@@ -604,9 +649,12 @@ const SortableNestedSection = ({
   onDeleteField,
   onDuplicateField,
   onResizeField,
+  onUpdateField,
   activeId,
   dragPreview,
-  setDragPreview
+  setDragPreview,
+  onAddSectionToNestedTab,
+  onDeleteSectionFromNestedTab
 }) => {
   const {
     attributes,
@@ -638,10 +686,13 @@ const SortableNestedSection = ({
         onDeleteField={onDeleteField}
         onDuplicateField={onDuplicateField}
         onResizeField={onResizeField}
+        onUpdateField={onUpdateField}
         activeId={activeId}
         dragPreview={dragPreview}
         setDragPreview={setDragPreview}
         dragHandleProps={{ attributes, listeners }}
+        onAddSectionToNestedTab={onAddSectionToNestedTab}
+        onDeleteSectionFromNestedTab={onDeleteSectionFromNestedTab}
       />
     </div>
   )
@@ -662,17 +713,20 @@ const NestedSectionWrapper = ({
   onDeleteField,
   onDuplicateField,
   onResizeField,
+  onUpdateField,
   activeId,
   columnSpan,
   dragPreview,
   setDragPreview,
-  dragHandleProps
+  dragHandleProps,
+  onAddSectionToNestedTab,
+  onDeleteSectionFromNestedTab
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const isRepeater = field.sectionType === 'repeater'
 
   return (
-    <Card className="border-2 border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-900/10 relative group">
+    <Card className="border-2 border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-900/10 relative hover-parent">
       {/* Nested Section Header */}
       <div className="flex items-center gap-2 mb-4">
         <button
@@ -720,15 +774,18 @@ const NestedSectionWrapper = ({
             onDeleteField={onDeleteField}
             onDuplicateField={onDuplicateField}
             onResizeField={onResizeField}
+            onUpdateField={onUpdateField}
             activeId={activeId}
             dragPreview={dragPreview}
             setDragPreview={setDragPreview}
+            onAddSectionToNestedTab={onAddSectionToNestedTab}
+            onDeleteSectionFromNestedTab={onDeleteSectionFromNestedTab}
           />
         </div>
       )}
 
       {/* Action buttons - bottom left */}
-      <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+      <div className="absolute bottom-2 left-2 opacity-0 hover-parent:hover:opacity-100 transition-opacity flex gap-1 z-10 section-actions">
         {/* Drag Handle */}
         {dragHandleProps && (
           <div
@@ -755,6 +812,382 @@ const NestedSectionWrapper = ({
           onClick={() => onDuplicateField(pageIndex, sectionIndex, fieldPath)}
           className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
           title="Duplicate Section"
+        >
+          <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteField(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          title="Delete"
+        >
+          <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+        </button>
+      </div>
+    </Card>
+  )
+}
+
+/**
+ * Sortable Nested Tabs Component - Wraps nested tabs with drag support
+ */
+const SortableNestedTabs = ({ 
+  id, 
+  field, 
+  pageIndex, 
+  sectionIndex, 
+  fieldIndex,
+  fieldPath,
+  columnSpan,
+  onOpenFieldConfig,
+  onDeleteField,
+  onDuplicateField,
+  onUpdateField,
+  activeId,
+  onAddSection,
+  onDeleteSection,
+  renderFieldPreview,
+  onStartAddingField,
+  onResizeField,
+  dragPreview,
+  setDragPreview
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.2 : 1
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <NestedTabsWrapper
+        field={field}
+        pageIndex={pageIndex}
+        sectionIndex={sectionIndex}
+        fieldIndex={fieldIndex}
+        fieldPath={fieldPath}
+        columnSpan={columnSpan}
+        onOpenFieldConfig={onOpenFieldConfig}
+        onDeleteField={onDeleteField}
+        onDuplicateField={onDuplicateField}
+        onUpdateField={onUpdateField}
+        activeId={activeId}
+        dragHandleProps={{ attributes, listeners }}
+        onAddSection={onAddSection}
+        onDeleteSection={onDeleteSection}
+        renderFieldPreview={renderFieldPreview}
+        onStartAddingField={onStartAddingField}
+        onResizeField={onResizeField}
+        dragPreview={dragPreview}
+        setDragPreview={setDragPreview}
+      />
+    </div>
+  )
+}
+
+/**
+ * Nested Tabs Wrapper - Wraps a tab field with proper styling
+ */
+const NestedTabsWrapper = ({
+  field,
+  pageIndex,
+  sectionIndex,
+  fieldIndex,
+  fieldPath,
+  columnSpan,
+  onOpenFieldConfig,
+  onDeleteField,
+  onDuplicateField,
+  onUpdateField,
+  activeId,
+  dragHandleProps,
+  onAddSection,
+  onDeleteSection,
+  renderFieldPreview,
+  onStartAddingField,
+  onResizeField,
+  dragPreview,
+  setDragPreview
+}) => {
+  const [activeTab, setActiveTab] = useState(0)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState({})
+  const [pendingTabSwitch, setPendingTabSwitch] = useState(null)
+  const pages = field.pages || []
+  const currentPage = pages[activeTab] || { sections: [] }
+  
+  // Handle switching to newly added tab
+  useEffect(() => {
+    if (pendingTabSwitch !== null && pendingTabSwitch < pages.length) {
+      setActiveTab(pendingTabSwitch)
+      setPendingTabSwitch(null)
+    }
+  }, [pages.length, pendingTabSwitch])
+  
+  // Ensure activeTab is within bounds when pages array changes
+  useEffect(() => {
+    if (activeTab >= pages.length && pages.length > 0) {
+      setActiveTab(pages.length - 1)
+    }
+  }, [pages.length, activeTab])
+
+  return (
+    <Card className="border-2 border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10 relative hover-parent">
+      {/* Nested Tabs Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
+        >
+          <FiChevronRight
+            className={`w-4 h-4 text-blue-600 dark:text-blue-400 transition-transform ${
+              isCollapsed ? '' : 'rotate-90'
+            }`}
+          />
+        </button>
+        <FiFolder className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          {field.label || 'Nested Tabs'}
+        </h3>
+        {columnSpan && (
+          <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+            {columnSpan}/12
+          </span>
+        )}
+        <span className="px-2 py-0.5 text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full">
+          {pages.length} {pages.length === 1 ? 'Tab' : 'Tabs'}
+        </span>
+      </div>
+
+      {/* Tab Navigation */}
+      {!isCollapsed && pages.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 border-b border-blue-200 dark:border-blue-800">
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+            {pages.map((page, idx) => (
+              <div 
+                key={page.id || idx}
+                className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
+                  activeTab === idx
+                    ? 'border-blue-600 dark:border-blue-400'
+                    : 'border-transparent'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(idx)}
+                  className={`text-sm font-medium transition-colors whitespace-nowrap ${
+                    activeTab === idx
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {page.title || `Tab ${idx + 1}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Update the field with a prompt to edit the tab title
+                    const newTitle = prompt('Enter tab title:', page.title || `Tab ${idx + 1}`)
+                    if (newTitle !== null && newTitle.trim() !== '') {
+                      const updatedPages = [...pages]
+                      updatedPages[idx] = { ...page, title: newTitle.trim() }
+                      // Remove last element from fieldPath as it contains this field's index
+                      const parentPath = fieldPath.slice(0, -1)
+                      onUpdateField(pageIndex, sectionIndex, fieldIndex, { pages: updatedPages }, parentPath)
+                    }
+                  }}
+                  className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                  title="Edit tab title"
+                >
+                  <FiSettings size={14} />
+                </button>
+                {pages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (confirm(`Delete tab "${page.title || `Tab ${idx + 1}`}"?`)) {
+                        const updatedPages = pages.filter((_, i) => i !== idx)
+                        // If deleting the active tab, switch to the previous tab or tab 0
+                        if (activeTab === idx) {
+                          setActiveTab(Math.max(0, idx - 1))
+                        } else if (activeTab > idx) {
+                          setActiveTab(activeTab - 1)
+                        }
+                        // Remove last element from fieldPath as it contains this field's index
+                        const parentPath = fieldPath.slice(0, -1)
+                        onUpdateField(pageIndex, sectionIndex, fieldIndex, { pages: updatedPages }, parentPath)
+                      }
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                    title="Delete tab"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const newTab = {
+                id: uuidv4(),
+                title: `Tab ${pages.length + 1}`,
+                sections: [{
+                  id: uuidv4(),
+                  title: 'New Section',
+                  description: '',
+                  fields: []
+                }]
+              }
+              const updatedPages = [...pages, newTab]
+              // Remove last element from fieldPath as it contains this field's index
+              const parentPath = fieldPath.slice(0, -1)
+              onUpdateField(pageIndex, sectionIndex, fieldIndex, { pages: updatedPages }, parentPath)
+              setPendingTabSwitch(pages.length) // Mark tab switch as pending
+            }}
+            className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1 whitespace-nowrap"
+            title="Add new tab"
+          >
+            <FiPlus size={14} />
+            Add Tab
+          </button>
+        </div>
+      )}
+
+      {/* Active Tab Content */}
+      {!isCollapsed && pages.length > 0 && (
+        <div className="mt-3 space-y-4">
+          {/* Sections in the active tab */}
+          {currentPage.sections && currentPage.sections.length > 0 ? (
+            currentPage.sections.map((section, secIdx) => {
+              const isCollapsed = collapsedSections[`${activeTab}-${secIdx}`]
+              return (
+                <Card key={section.id || secIdx} className="border-2 border-gray-200 dark:border-gray-700" padding={true}>
+                  {/* Section Header */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setCollapsedSections(prev => ({
+                        ...prev,
+                        [`${activeTab}-${secIdx}`]: !prev[`${activeTab}-${secIdx}`]
+                      }))}
+                      className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                      title={isCollapsed ? "Expand section" : "Collapse section"}
+                    >
+                      <FiChevronRight
+                        className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+                          isCollapsed ? '' : 'rotate-90'
+                        }`}
+                      />
+                    </button>
+
+                    <div className="flex-1">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {section.title || `Section ${secIdx + 1}`}
+                      </h2>
+                      {section.description && !isCollapsed && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{section.description}</p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSection(pageIndex, sectionIndex, fieldIndex, fieldPath, activeTab, secIdx)}
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                        title="Delete Section"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section Content */}
+                  {!isCollapsed && (
+                    <>
+                      {/* Render section fields using RecursiveSectionContent */}
+                      <RecursiveSectionContent
+                        section={section}
+                        pageIndex={pageIndex}
+                        sectionIndex={sectionIndex}
+                        fieldPath={[...fieldPath, 'pages', activeTab, 'sections', secIdx]}
+                        renderFieldPreview={renderFieldPreview}
+                        onStartAddingField={onStartAddingField}
+                        onOpenFieldConfig={onOpenFieldConfig}
+                        onDeleteField={onDeleteField}
+                        onDuplicateField={onDuplicateField}
+                        onResizeField={onResizeField}
+                        onUpdateField={onUpdateField}
+                        activeId={activeId}
+                        dragPreview={dragPreview}
+                        setDragPreview={setDragPreview}
+                        onAddSectionToNestedTab={onAddSection}
+                        onDeleteSectionFromNestedTab={onDeleteSection}
+                      />
+                    </>
+                  )}
+                </Card>
+              )
+            })
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+              No sections in this tab yet
+            </div>
+          )}
+
+          {/* Add Section Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onAddSection(pageIndex, sectionIndex, fieldIndex, fieldPath, activeTab)}
+            className="mt-2"
+          >
+            <FiPlus className="mr-1" /> Add Section
+          </Button>
+        </div>
+      )}
+
+      {/* Action buttons - bottom left */}
+      <div className="absolute bottom-2 left-2 opacity-0 transition-opacity flex gap-1 z-10 section-actions">
+        {/* Drag Handle */}
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps.attributes}
+            {...dragHandleProps.listeners}
+            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+          >
+            <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => onOpenFieldConfig(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+          title="Configure"
+        >
+          <FiSettings className="w-4 h-4" />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => onDuplicateField(pageIndex, sectionIndex, fieldPath)}
+          className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+          title="Duplicate Tabs"
         >
           <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         </button>
@@ -1141,6 +1574,92 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     setFormData({ ...formData, pages: updatedPages })
   }
 
+  // Add section to a nested tab
+  const handleAddSectionToNestedTab = (pageIndex, sectionIndex, fieldIndex, fieldPath, tabIndex) => {
+    const newSection = {
+      id: uuidv4(),
+      title: 'New Section',
+      description: '',
+      fields: [],
+      type: 'regular'
+    }
+
+    const updatedPages = [...formData.pages]
+    
+    // Navigate to the nested tab field (handles mixed paths)
+    let container = updatedPages[pageIndex].sections[sectionIndex]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index
+        container = currentFields[pathElement]
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        }
+      }
+    }
+    
+    // Add section to the specific tab within the nested tabs
+    if (!container.pages[tabIndex].sections) {
+      container.pages[tabIndex].sections = []
+    }
+    container.pages[tabIndex].sections.push(newSection)
+    
+    setFormData({ ...formData, pages: updatedPages })
+  }
+
+  // Delete section from a nested tab
+  const handleDeleteSectionFromNestedTab = (pageIndex, sectionIndex, fieldIndex, fieldPath, tabIndex, secIdx) => {
+    const updatedPages = [...formData.pages]
+    
+    // Navigate to the nested tab field (handles mixed paths)
+    let container = updatedPages[pageIndex].sections[sectionIndex]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index
+        container = currentFields[pathElement]
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        }
+      }
+    }
+    
+    const section = container.pages[tabIndex].sections[secIdx]
+    if (!confirm(`Delete section "${section.title}" and all its fields?`)) return
+    
+    // Remove the section
+    container.pages[tabIndex].sections = container.pages[tabIndex].sections.filter((_, i) => i !== secIdx)
+    
+    setFormData({ ...formData, pages: updatedPages })
+  }
+
   const handleUpdateSection = (pageIndex, sectionIndex, updates) => {
     const updatedPages = [...formData.pages]
     updatedPages[pageIndex] = {
@@ -1161,10 +1680,48 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     let targetContainer = section
     let targetFields = section.fields
     
-    // Navigate through nested sections using fieldPath
-    for (const fieldIndex of fieldPath) {
-      targetContainer = targetFields[fieldIndex]
-      targetFields = targetContainer.fields || []
+    // Navigate through nested structure using fieldPath
+    // fieldPath can contain numeric indices for fields and strings for nested structures
+    // e.g., [fieldIndex, 'pages', tabIndex, 'sections', sectionIndex]
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        targetContainer = targetContainer[pathElement]
+        // If we just navigated to an array (pages/sections), set it as targetFields
+        // so the next numeric index can use it
+        if (Array.isArray(targetContainer)) {
+          targetFields = targetContainer
+        }
+      } else {
+        // Numeric index - navigate into the current array
+        if (Array.isArray(targetFields)) {
+          targetContainer = targetFields[pathElement]
+        } else {
+          // Shouldn't happen, but fallback to fields array
+          targetContainer = targetFields[pathElement]
+        }
+        // After navigating to an indexed item, check what kind of item it is
+        // Tab fields have 'pages', sections have 'fields', pages have 'sections'
+        if (targetContainer?.fields) {
+          targetFields = targetContainer.fields
+        } else if (targetContainer?.pages) {
+          targetFields = targetContainer.pages
+        } else if (targetContainer?.sections) {
+          targetFields = targetContainer.sections
+        } else {
+          targetFields = []
+        }
+      }
+    }
+    
+    // Final step: determine the actual target fields array where we'll add the new field
+    // The target container should now be at the right location
+    if (targetContainer?.fields) {
+      targetFields = targetContainer.fields
+    } else {
+      targetFields = []
     }
     
     // Calculate next available position
@@ -1178,19 +1735,19 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       const lastCol = lastField.gridColumn || 1
       const lastSpan = lastField.columnSpan || 4
       
-      // Nested sections (columnSpan 12) always start on a new row
-      if (fieldType === 'section') {
+      // Nested sections and tabs (columnSpan 12) always start on a new row
+      if (fieldType === 'section' || fieldType === 'tab') {
         nextRow = lastRow + 1
         nextCol = 1
       } else {
-        // Try to place in same row if space available
-        if (lastCol + lastSpan - 1 + 4 <= 12) {
-          nextRow = lastRow
-          nextCol = lastCol + lastSpan
-        } else {
-          // Move to next row
-          nextRow = lastRow + 1
-          nextCol = 1
+      // Try to place in same row if space available
+      if (lastCol + lastSpan - 1 + 4 <= 12) {
+        nextRow = lastRow
+        nextCol = lastCol + lastSpan
+      } else {
+        // Move to next row
+        nextRow = lastRow + 1
+        nextCol = 1
         }
       }
     } else {
@@ -1212,6 +1769,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         : fieldType === 'radio_group' ? 'Radio Group'
         : fieldType === 'toggle' ? 'Toggle Switch'
         : fieldType === 'section' ? 'Nested Section'
+        : fieldType === 'tab' ? 'Nested Tabs'
         : 'Field',
       type: fieldType,
       required: false,
@@ -1223,38 +1781,58 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       description: fieldType === 'section' ? '' : undefined,
       fields: fieldType === 'section' ? [] : undefined,
       sectionType: fieldType === 'section' ? 'regular' : undefined,
-      columnSpan: fieldType === 'section' ? 12 : 4, // Full width for sections, one-third for regular fields
+      // Tab-specific properties
+      pages: fieldType === 'tab' ? [{
+        id: uuidv4(),
+        title: 'Tab 1',
+        sections: [{
+          id: uuidv4(),
+          title: 'New Section',
+          description: '',
+          fields: []
+        }]
+      }] : undefined,
+      columnSpan: (fieldType === 'section' || fieldType === 'tab') ? 12 : 4, // Full width for sections and tabs
       gridRow: nextRow, // Explicit row position
       gridColumn: nextCol, // Explicit column start (1-12)
       validation: {}
     }
     
-    // Helper function to update nested structure
-    const updateNestedFields = (fields, path, newFieldsArray) => {
+    // Helper function to update nested structure with mixed path (numbers and strings)
+    const updateNestedStructure = (container, path, newFieldsArray) => {
       if (path.length === 0) {
-        return newFieldsArray
+        return { ...container, fields: newFieldsArray }
       }
       
-      const [currentIndex, ...restPath] = path
-      const updatedFields = [...fields]
-      updatedFields[currentIndex] = {
-        ...updatedFields[currentIndex],
-        fields: updateNestedFields(updatedFields[currentIndex].fields || [], restPath, newFieldsArray)
+      const [currentElement, ...restPath] = path
+      
+      if (typeof currentElement === 'string') {
+        // String key like 'pages' or 'sections'
+        const nextElement = restPath[0] // Should be a numeric index
+        if (typeof nextElement === 'number') {
+          const [index, ...remainingPath] = restPath
+          const updatedArray = [...container[currentElement]]
+          updatedArray[index] = updateNestedStructure(updatedArray[index], remainingPath, newFieldsArray)
+          return { ...container, [currentElement]: updatedArray }
+        }
+      } else {
+        // Numeric index - navigate into fields array
+        const updatedFields = [...(container.fields || [])]
+        updatedFields[currentElement] = updateNestedStructure(updatedFields[currentElement], restPath, newFieldsArray)
+        return { ...container, fields: updatedFields }
       }
-      return updatedFields
+      
+      return container
     }
     
     const updatedPages = [...formData.pages]
-    const updatedFields = updateNestedFields(
-      section.fields,
+    const updatedSection = updateNestedStructure(
+      section,
       fieldPath,
       [...targetFields, newField]
     )
     
-    updatedPages[pageIndex].sections[sectionIndex] = {
-      ...section,
-      fields: updatedFields
-    }
+    updatedPages[pageIndex].sections[sectionIndex] = updatedSection
     
     setFormData({ ...formData, pages: updatedPages })
     
@@ -1282,12 +1860,44 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     setAddingFieldTo(null)
   }
 
-  const handleUpdateField = (pageIndex, sectionIndex, fieldIndex, updates) => {
+  const handleUpdateField = (pageIndex, sectionIndex, fieldIndex, updates, fieldPath = []) => {
     const updatedPages = [...formData.pages]
-    const section = updatedPages[pageIndex].sections[sectionIndex]
-    updatedPages[pageIndex].sections[sectionIndex] = {
-      ...section,
-      fields: section.fields.map((field, i) =>
+    
+    // Navigate to the correct container using fieldPath
+    let container = updatedPages[pageIndex].sections[sectionIndex]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index
+        container = currentFields[pathElement]
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        }
+      }
+    }
+    
+    // Update the field in the current fields array
+    if (fieldPath.length === 0) {
+      // Top-level field
+      updatedPages[pageIndex].sections[sectionIndex].fields = currentFields.map((field, i) =>
+        i === fieldIndex ? { ...field, ...updates } : field
+      )
+    } else {
+      // Nested field - update in the container
+      container.fields = currentFields.map((field, i) =>
         i === fieldIndex ? { ...field, ...updates } : field
       )
     }
@@ -1382,13 +1992,44 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       fieldIndex = fieldPathOrIndex
     }
     
-    // Navigate to the correct container using fieldPath
+    // Navigate to the correct container using fieldPath (handles mixed paths)
     let container = updatedPages[pageIndex].sections[sectionIndex]
-    for (const pathIdx of fieldPath) {
-      container = container.fields[pathIdx]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        // If we just navigated to an array, set it as currentFields
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index - navigate into the current array
+        container = currentFields[pathElement]
+        // After navigating, check what the container has
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        } else {
+          currentFields = []
+        }
+      }
     }
     
-    const field = container.fields[fieldIndex]
+    // Final step: get the actual fields array we're resizing in
+    if (container?.fields) {
+      currentFields = container.fields
+    } else {
+      currentFields = []
+    }
+    
+    const field = currentFields[fieldIndex]
     const fieldRow = field.gridRow || 1
     const fieldCol = field.gridColumn || 1
     const oldSpan = field.columnSpan || 4
@@ -1500,7 +2141,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           }
         }
       })
-      
+    
       // Second pass: resolve cascading collisions
       updatedFields = resolveCollisionsCascading(updatedFields, fieldIndex)
     }
@@ -1577,15 +2218,43 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     setConfigHasChanges(false)
   }
 
-  const handleOpenFieldConfig = (pageIndex, sectionIndex, fieldIndex) => {
-    const field = formData.pages[pageIndex].sections[sectionIndex].fields[fieldIndex]
+  const handleOpenFieldConfig = (pageIndex, sectionIndex, fieldIndex, fieldPath = []) => {
+    // Navigate to the correct field using fieldPath
+    let container = formData.pages[pageIndex].sections[sectionIndex]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index
+        container = currentFields[pathElement]
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        }
+      }
+    }
+    
+    // Get the actual field
+    const field = currentFields[fieldIndex]
     
     // Check if already editing the same field
     const isSameConfig = editingConfig && 
                          editingConfig.type === 'field' && 
                          editingConfig.pageIndex === pageIndex && 
                          editingConfig.sectionIndex === sectionIndex && 
-                         editingConfig.fieldIndex === fieldIndex
+                         editingConfig.fieldIndex === fieldIndex &&
+                         JSON.stringify(editingConfig.fieldPath || []) === JSON.stringify(fieldPath)
     
     if (isSameConfig) {
       return // Already open, do nothing
@@ -1608,6 +2277,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       pageIndex,
       sectionIndex,
       fieldIndex,
+      fieldPath,
       data: { ...field } // Create a new object reference
     })
     setConfigHasChanges(false)
@@ -1625,7 +2295,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         editingConfig.pageIndex,
         editingConfig.sectionIndex,
         editingConfig.fieldIndex,
-        updatedData
+        updatedData,
+        editingConfig.fieldPath || []
       )
     }
     setConfigHasChanges(false)
@@ -1645,14 +2316,45 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     
     const updatedPages = [...formData.pages]
     
-    // Navigate to the correct container using fieldPath
+    // Navigate to the correct container using fieldPath (handles mixed paths)
     let container = updatedPages[pageIndex].sections[sectionIndex]
-    for (const pathIdx of fieldPath) {
-      container = container.fields[pathIdx]
+    let currentFields = container.fields || []
+    
+    for (let i = 0; i < fieldPath.length; i++) {
+      const pathElement = fieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        // String keys like 'pages' or 'sections'
+        container = container[pathElement]
+        // If we just navigated to an array, set it as currentFields
+        if (Array.isArray(container)) {
+          currentFields = container
+        }
+      } else {
+        // Numeric index - navigate into the current array
+        container = currentFields[pathElement]
+        // After navigating, check what the container has
+        if (container?.fields) {
+          currentFields = container.fields
+        } else if (container?.pages) {
+          currentFields = container.pages
+        } else if (container?.sections) {
+          currentFields = container.sections
+        } else {
+          currentFields = []
+        }
+      }
+    }
+    
+    // Final step: get the actual fields array we're deleting from
+    if (container?.fields) {
+      currentFields = container.fields
+    } else {
+      currentFields = []
     }
     
     // Remove the field
-    const remainingFields = container.fields.filter((_, i) => i !== fieldIndex)
+    const remainingFields = currentFields.filter((_, i) => i !== fieldIndex)
     
     // Compact rows - remove empty rows and renumber
     const compactedFields = compactGridRows(remainingFields)
@@ -1834,15 +2536,37 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     if (activeData[0] === 'field') {
       const pageIdx = Number(activeData[1])
       const sectionIdx = Number(activeData[2])
-      const fieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+      const fieldPath = parseFieldPathFromId(activeData.slice(3, -1))
       const fieldIdx = Number(activeData[activeData.length - 1])
       
-      // Navigate to field using fieldPath
+      // Navigate to field using fieldPath (handles mixed paths)
       let container = formData.pages[pageIdx].sections[sectionIdx]
-      for (const pathIdx of fieldPath) {
-        container = container.fields[pathIdx]
+      let currentFields = container.fields || []
+      
+      for (let i = 0; i < fieldPath.length; i++) {
+        const pathElement = fieldPath[i]
+        
+        if (typeof pathElement === 'string') {
+          // String keys like 'pages' or 'sections'
+          container = container[pathElement]
+          if (Array.isArray(container)) {
+            currentFields = container
+          }
+        } else {
+          // Numeric index
+          container = currentFields[pathElement]
+          if (container?.fields) {
+            currentFields = container.fields
+          } else if (container?.pages) {
+            currentFields = container.pages
+          } else if (container?.sections) {
+            currentFields = container.sections
+          }
+        }
       }
-      const field = container.fields[fieldIdx]
+      
+      // Get the actual field
+      const field = currentFields[fieldIdx]
       
       setDragPreview({
         pageIndex: pageIdx,
@@ -1866,15 +2590,37 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       // Hovering over an existing field - swap position
       const pageIdx = Number(overData[1])
       const sectionIdx = Number(overData[2])
-      const fieldPath = overData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+      const fieldPath = parseFieldPathFromId(overData.slice(3, -1))
       const fieldIdx = Number(overData[overData.length - 1])
       
-      // Navigate to field using fieldPath
+      // Navigate to field using fieldPath (handles mixed paths)
       let container = formData.pages[pageIdx].sections[sectionIdx]
-      for (const pathIdx of fieldPath) {
-        container = container.fields[pathIdx]
+      let currentFields = container.fields || []
+      
+      for (let i = 0; i < fieldPath.length; i++) {
+        const pathElement = fieldPath[i]
+        
+        if (typeof pathElement === 'string') {
+          // String keys like 'pages' or 'sections'
+          container = container[pathElement]
+          if (Array.isArray(container)) {
+            currentFields = container
+          }
+        } else {
+          // Numeric index
+          container = currentFields[pathElement]
+          if (container?.fields) {
+            currentFields = container.fields
+          } else if (container?.pages) {
+            currentFields = container.pages
+          } else if (container?.sections) {
+            currentFields = container.sections
+          }
+        }
       }
-      const targetField = container.fields[fieldIdx]
+      
+      // Get the target field
+      const targetField = currentFields[fieldIdx]
       
       setDragPreview({
         ...dragPreview,
@@ -1888,7 +2634,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       // Hovering over an empty cell
       const pageIdx = Number(overData[1])
       const sectionIdx = Number(overData[2])
-      const fieldPath = overData.slice(3, -2).map(Number).filter(n => !isNaN(n))
+      const fieldPath = parseFieldPathFromId(overData.slice(3, -2))
       const row = Number(overData[overData.length - 2])
       const col = Number(overData[overData.length - 1])
       
@@ -1935,29 +2681,73 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     // Extract indices: first 3 are type, pageIdx, sectionIdx; last is fieldIdx; middle are fieldPath
     const activePageIdx = Number(activeData[1])
     const activeSectionIdx = Number(activeData[2])
-    const activeFieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const activeFieldPath = parseFieldPathFromId(activeData.slice(3, -1))
     const activeFieldIdx = Number(activeData[activeData.length - 1])
     
     const overPageIdx = Number(overData[1])
     const overSectionIdx = Number(overData[2])
-    const overFieldPath = overData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const overFieldPath = parseFieldPathFromId(overData.slice(3, -1))
     const overFieldIdx = Number(overData[overData.length - 1])
 
     const updatedPages = [...formData.pages]
     
-    // Navigate to the source container using fieldPath
+    // Navigate to the source container using fieldPath (handles mixed paths)
     let sourceContainer = updatedPages[activePageIdx].sections[activeSectionIdx]
-    for (const pathIdx of activeFieldPath) {
-      sourceContainer = sourceContainer.fields[pathIdx]
-    }
     let sourceFields = sourceContainer.fields || []
     
-    // Navigate to the target container using fieldPath
-    let targetContainer = updatedPages[overPageIdx].sections[overSectionIdx]
-    for (const pathIdx of overFieldPath) {
-      targetContainer = targetContainer.fields[pathIdx]
+    for (let i = 0; i < activeFieldPath.length; i++) {
+      const pathElement = activeFieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        sourceContainer = sourceContainer[pathElement]
+        if (Array.isArray(sourceContainer)) {
+          sourceFields = sourceContainer
+        }
+      } else {
+        sourceContainer = sourceFields[pathElement]
+        if (sourceContainer?.fields) {
+          sourceFields = sourceContainer.fields
+        } else if (sourceContainer?.pages) {
+          sourceFields = sourceContainer.pages
+        } else if (sourceContainer?.sections) {
+          sourceFields = sourceContainer.sections
+        }
+      }
     }
+    
+    // Final step: ensure sourceFields is the actual fields array
+    if (sourceContainer?.fields && activeFieldPath.length > 0) {
+      sourceFields = sourceContainer.fields
+    }
+    
+    // Navigate to the target container using fieldPath (handles mixed paths)
+    let targetContainer = updatedPages[overPageIdx].sections[overSectionIdx]
     let targetFields = targetContainer.fields || []
+    
+    for (let i = 0; i < overFieldPath.length; i++) {
+      const pathElement = overFieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        targetContainer = targetContainer[pathElement]
+        if (Array.isArray(targetContainer)) {
+          targetFields = targetContainer
+        }
+      } else {
+        targetContainer = targetFields[pathElement]
+        if (targetContainer?.fields) {
+          targetFields = targetContainer.fields
+        } else if (targetContainer?.pages) {
+          targetFields = targetContainer.pages
+        } else if (targetContainer?.sections) {
+          targetFields = targetContainer.sections
+        }
+      }
+    }
+    
+    // Final step: ensure targetFields is the actual fields array
+    if (targetContainer?.fields && overFieldPath.length > 0) {
+      targetFields = targetContainer.fields
+    }
 
     // Check if moving within same container
     const isSameContainer = activePageIdx === overPageIdx && 
@@ -1971,8 +2761,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     if (isSameContainer) {
       // Same container
       const targetField = { ...sourceFields[overFieldIdx] }
-      const targetRow = targetField.gridRow || 1
-      const targetCol = targetField.gridColumn || 1
+    const targetRow = targetField.gridRow || 1
+    const targetCol = targetField.gridColumn || 1
       const targetFieldSpan = targetField.columnSpan || 4
       const isTargetFieldFullWidth = targetFieldSpan === 12 || targetField.type === 'section'
       
@@ -2016,18 +2806,18 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         // Regular swap
         const movingRow = movingField.gridRow || 1
         const movingCol = movingField.gridColumn || 1
-        
-        // Swap grid positions
-        movingField.gridRow = targetRow
-        movingField.gridColumn = targetCol
-        
-        targetField.gridRow = movingRow
-        targetField.gridColumn = movingCol
-        
+    
+    // Swap grid positions
+    movingField.gridRow = targetRow
+    movingField.gridColumn = targetCol
+    
+    targetField.gridRow = movingRow
+    targetField.gridColumn = movingCol
+    
         // Swap the fields in the array
         const newFields = [...sourceFields]
-        newFields[activeFieldIdx] = movingField
-        newFields[overFieldIdx] = targetField
+      newFields[activeFieldIdx] = movingField
+      newFields[overFieldIdx] = targetField
         
         sourceContainer.fields = newFields
       }
@@ -2111,31 +2901,75 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     // Parse field IDs - format: field-pageIdx-sectionIdx-[fieldPath...]-fieldIdx
     const activePageIdx = Number(activeData[1])
     const activeSectionIdx = Number(activeData[2])
-    const activeFieldPath = activeData.slice(3, -1).map(Number).filter(n => !isNaN(n))
+    const activeFieldPath = parseFieldPathFromId(activeData.slice(3, -1))
     const activeFieldIdx = Number(activeData[activeData.length - 1])
     
     // Parse empty cell IDs - format: empty-pageIdx-sectionIdx-[fieldPath...]-row-col
     const targetPageIdx = Number(overData[1])
     const targetSectionIdx = Number(overData[2])
-    const targetFieldPath = overData.slice(3, -2).map(Number).filter(n => !isNaN(n))
+    const targetFieldPath = parseFieldPathFromId(overData.slice(3, -2))
     const targetRow = Number(overData[overData.length - 2])
     const targetCol = Number(overData[overData.length - 1])
 
     const updatedPages = [...formData.pages]
     
-    // Navigate to the source container using fieldPath
+    // Navigate to the source container using fieldPath (handles mixed paths)
     let sourceContainer = updatedPages[activePageIdx].sections[activeSectionIdx]
-    for (const pathIdx of activeFieldPath) {
-      sourceContainer = sourceContainer.fields[pathIdx]
-    }
     let sourceFields = sourceContainer.fields || []
     
-    // Navigate to the target container using fieldPath
-    let targetContainer = updatedPages[targetPageIdx].sections[targetSectionIdx]
-    for (const pathIdx of targetFieldPath) {
-      targetContainer = targetContainer.fields[pathIdx]
+    for (let i = 0; i < activeFieldPath.length; i++) {
+      const pathElement = activeFieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        sourceContainer = sourceContainer[pathElement]
+        if (Array.isArray(sourceContainer)) {
+          sourceFields = sourceContainer
+        }
+      } else {
+        sourceContainer = sourceFields[pathElement]
+        if (sourceContainer?.fields) {
+          sourceFields = sourceContainer.fields
+        } else if (sourceContainer?.pages) {
+          sourceFields = sourceContainer.pages
+        } else if (sourceContainer?.sections) {
+          sourceFields = sourceContainer.sections
+        }
+      }
     }
+    
+    // Final step: ensure sourceFields is the actual fields array
+    if (sourceContainer?.fields && activeFieldPath.length > 0) {
+      sourceFields = sourceContainer.fields
+    }
+    
+    // Navigate to the target container using fieldPath (handles mixed paths)
+    let targetContainer = updatedPages[targetPageIdx].sections[targetSectionIdx]
     let targetFields = targetContainer.fields || []
+    
+    for (let i = 0; i < targetFieldPath.length; i++) {
+      const pathElement = targetFieldPath[i]
+      
+      if (typeof pathElement === 'string') {
+        targetContainer = targetContainer[pathElement]
+        if (Array.isArray(targetContainer)) {
+          targetFields = targetContainer
+        }
+      } else {
+        targetContainer = targetFields[pathElement]
+        if (targetContainer?.fields) {
+          targetFields = targetContainer.fields
+        } else if (targetContainer?.pages) {
+          targetFields = targetContainer.pages
+        } else if (targetContainer?.sections) {
+          targetFields = targetContainer.sections
+        }
+      }
+    }
+    
+    // Final step: ensure targetFields is the actual fields array
+    if (targetContainer?.fields && targetFieldPath.length > 0) {
+      targetFields = targetContainer.fields
+    }
     
     // Get the field being moved (create a copy to avoid mutation)
     const movingField = { ...sourceFields[activeFieldIdx] }
@@ -2169,7 +3003,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       const fieldCol = field.gridColumn || 1
       const fieldSpanSize = field.columnSpan || 4
       const fieldEndCol = fieldCol + fieldSpanSize - 1
-      const isFieldFullWidth = fieldSpanSize === 12 || field.type === 'section'
+      const isFieldFullWidth = fieldSpanSize === 12 || field.type === 'section' || field.type === 'tab'
       
       // Check if this field is on the same row and would overlap
       if (fieldRow === targetRow) {
@@ -2636,7 +3470,26 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             <span className="text-sm text-gray-700 dark:text-gray-300">On</span>
           </label>
         )
-      
+
+      case 'info':
+        const infoStyle = {
+          fontSize: field.fontSize || '14px',
+          fontWeight: field.fontWeight || 'normal',
+          color: field.fontColor || '#374151',
+          fontFamily: field.fontFamily || 'inherit',
+          textAlign: field.textAlign || 'left',
+          fontStyle: field.fontStyle || 'normal',
+          textDecoration: field.textDecoration || 'none'
+        }
+        return (
+          <div 
+            className="w-full whitespace-pre-wrap break-words"
+            style={infoStyle}
+          >
+            {field.content || field.placeholder || 'Text will be displayed here'}
+          </div>
+        )
+
       case 'section':
         // Nested sections are handled by RecursiveSectionContent - shouldn't reach here
         return <div className="text-gray-500 italic">Nested Section (rendered separately)</div>
@@ -2657,6 +3510,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
 
   return (
     <div className="h-full">
+      <style dangerouslySetInnerHTML={{ __html: hoverStyles }} />
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -2775,18 +3629,21 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                       
                       <RecursiveSectionContent
                         section={section}
-                        pageIndex={currentPageIndex}
-                        sectionIndex={sectionIndex}
+                                        pageIndex={currentPageIndex}
+                                        sectionIndex={sectionIndex}
                         fieldPath={[]}
-                        renderFieldPreview={renderFieldPreview}
+                                        renderFieldPreview={renderFieldPreview}
                         onStartAddingField={handleStartAddingField}
                         onOpenFieldConfig={handleOpenFieldConfig}
                         onDeleteField={handleDeleteField}
                         onDuplicateField={handleDuplicateField}
                         onResizeField={handleResizeField}
+                        onUpdateField={handleUpdateField}
                         activeId={activeId}
                         dragPreview={dragPreview}
                         setDragPreview={setDragPreview}
+                        onAddSectionToNestedTab={handleAddSectionToNestedTab}
+                        onDeleteSectionFromNestedTab={handleDeleteSectionFromNestedTab}
                       />
                     </SortableSection>
                   </div>
@@ -2898,8 +3755,14 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             addingFieldTo.fieldPath && addingFieldTo.fieldPath.length > 0
               ? (() => {
                   let container = formData.pages[addingFieldTo.pageIndex]?.sections[addingFieldTo.sectionIndex]
-                  for (const idx of addingFieldTo.fieldPath) {
-                    container = container?.fields?.[idx]
+                  for (const pathElement of addingFieldTo.fieldPath) {
+                    if (typeof pathElement === 'string') {
+                      // String keys like 'pages' or 'sections'
+                      container = container?.[pathElement]
+                    } else if (typeof pathElement === 'number') {
+                      // Numeric index - navigate into fields array
+                      container = container?.fields?.[pathElement]
+                    }
                   }
                   return container?.title || container?.label || 'Nested Section'
                 })()

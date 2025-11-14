@@ -293,14 +293,36 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
         ) : (
           <>
             {/* Field Configuration */}
+            
+            {/* Common: Field Label */}
             <Input
-              label="Field Label"
-              value={config.label}
-              onChange={(e) => updateConfig({ label: e.target.value })}
-              placeholder="e.g., Project Name"
+              label={config.type === 'section' ? 'Section Title' : config.type === 'tab' ? 'Tab Label' : 'Field Label'}
+              value={config.type === 'section' ? (config.title || config.label) : config.label}
+              onChange={(e) => {
+                if (config.type === 'section') {
+                  updateConfig({ title: e.target.value, label: e.target.value })
+                } else {
+                  updateConfig({ label: e.target.value })
+                }
+              }}
+              placeholder={config.type === 'section' ? 'e.g., Contact Information' : config.type === 'tab' ? 'e.g., Additional Info' : 'e.g., Project Name'}
               required
             />
 
+            {/* Show Label Checkbox - Only for regular input fields */}
+            {config.type !== 'info' && config.type !== 'section' && config.type !== 'tab' && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={config.showLabel !== false}
+                  onChange={(e) => updateConfig({ showLabel: e.target.checked })}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">Show label in form</span>
+              </label>
+            )}
+
+            {/* Field Type Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
               <select
@@ -313,7 +335,6 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 <option value="email">Email</option>
                 <option value="tel">Phone</option>
                 <option value="date">Date</option>
-                <option value="section">Nested Section</option>
                 <option value="textarea">Textarea</option>
                 <option value="select">Select Dropdown</option>
                 <option value="checkbox">Checkbox</option>
@@ -321,9 +342,13 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 <option value="radio">Radio</option>
                 <option value="radio_group">Radio Group</option>
                 <option value="toggle">Toggle</option>
+                <option value="info">Text Display (Customizable)</option>
+                <option value="section">Nested Section</option>
+                <option value="tab">Nested Tabs</option>
               </select>
             </div>
 
+            {/* Field Width - All types except nested items which handle their own width */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Field Width (Column Span)
@@ -347,20 +372,35 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               </p>
             </div>
 
-            <Input
-              label="Field Name (Internal)"
-              value={config.name}
-              onChange={(e) => updateConfig({ name: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-              placeholder="e.g., project_name"
-              hint="Used to store the data (no spaces)"
-            />
+            {/* Field Name - Only for regular input fields (not section, tab, or info) */}
+            {config.type !== 'info' && config.type !== 'section' && config.type !== 'tab' && (
+              <Input
+                label="Field Name (Internal)"
+                value={config.name}
+                onChange={(e) => updateConfig({ name: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                placeholder="e.g., project_name"
+                hint="Used to store the data (no spaces)"
+              />
+            )}
 
-            <Input
-              label="Placeholder"
-              value={config.placeholder || ''}
-              onChange={(e) => updateConfig({ placeholder: e.target.value })}
-              placeholder="e.g., Enter project name..."
-            />
+            {/* Placeholder - Only for input fields that support it */}
+            {config.type !== 'info' && config.type !== 'section' && config.type !== 'tab' && config.type !== 'checkbox' && config.type !== 'toggle' && config.type !== 'checkbox_group' && config.type !== 'radio_group' && (
+              <Input
+                label="Placeholder"
+                value={config.placeholder || ''}
+                onChange={(e) => updateConfig({ placeholder: e.target.value })}
+                placeholder="e.g., Enter project name..."
+              />
+            )}
+
+            {/* Separator for Type-Specific Options */}
+            {(config.type === 'textarea' || config.type === 'select' || config.type === 'checkbox_group' || config.type === 'radio_group' || config.type === 'info' || config.type === 'section' || config.type === 'tab') && (
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  {config.type === 'section' ? 'Section Options' : config.type === 'tab' ? 'Tab Options' : config.type === 'info' ? 'Text Styling' : 'Field Options'}
+                </h4>
+              </div>
+            )}
 
             {config.type === 'textarea' && (
               <Input
@@ -431,23 +471,196 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               </div>
             )}
 
-            {config.type === 'section' && (
+            {config.type === 'info' && (
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                   <p className="text-sm text-blue-800">
-                    <strong>Nested Section:</strong> This creates a section within the current section. 
-                    After saving, you can add fields to this nested section just like a regular section.
+                    <strong>Text Display:</strong> This field displays customizable text to users. 
+                    Style it as a heading, instruction, warning, or any other informational text.
                   </p>
                 </div>
 
-                <Input
-                  label="Section Title"
-                  value={config.title || ''}
-                  onChange={(e) => updateConfig({ title: e.target.value })}
-                  placeholder="e.g., Contact Information"
-                  hint="Title shown at the top of the nested section"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={config.content || config.placeholder || ''}
+                    onChange={(e) => updateConfig({ content: e.target.value, placeholder: e.target.value })}
+                    placeholder="Enter the text you want to display..."
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    This text will be displayed in the form. Line breaks are preserved.
+                  </p>
+                </div>
 
+                <div className="border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Text Styling</h4>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Font Size */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Font Size</label>
+                      <select
+                        value={config.fontSize || '14px'}
+                        onChange={(e) => updateConfig({ fontSize: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="10px">10px - Tiny</option>
+                        <option value="12px">12px - Small</option>
+                        <option value="14px">14px - Normal</option>
+                        <option value="16px">16px - Medium</option>
+                        <option value="18px">18px - Large</option>
+                        <option value="20px">20px - XLarge</option>
+                        <option value="24px">24px - 2XLarge</option>
+                        <option value="30px">30px - 3XLarge</option>
+                        <option value="36px">36px - Heading</option>
+                        <option value="48px">48px - Large Heading</option>
+                      </select>
+                    </div>
+
+                    {/* Font Weight */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Font Weight</label>
+                      <select
+                        value={config.fontWeight || 'normal'}
+                        onChange={(e) => updateConfig({ fontWeight: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="300">Light</option>
+                        <option value="normal">Normal</option>
+                        <option value="500">Medium</option>
+                        <option value="600">Semi-Bold</option>
+                        <option value="bold">Bold</option>
+                        <option value="800">Extra Bold</option>
+                      </select>
+                    </div>
+
+                    {/* Font Color */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Font Color</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={config.fontColor || '#374151'}
+                          onChange={(e) => updateConfig({ fontColor: e.target.value })}
+                          className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={config.fontColor || '#374151'}
+                          onChange={(e) => updateConfig({ fontColor: e.target.value })}
+                          placeholder="#374151"
+                          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Text Align */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Text Align</label>
+                      <select
+                        value={config.textAlign || 'left'}
+                        onChange={(e) => updateConfig({ textAlign: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                        <option value="justify">Justify</option>
+                      </select>
+                    </div>
+
+                    {/* Font Style */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Font Style</label>
+                      <select
+                        value={config.fontStyle || 'normal'}
+                        onChange={(e) => updateConfig({ fontStyle: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="italic">Italic</option>
+                      </select>
+                    </div>
+
+                    {/* Text Decoration */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Text Decoration</label>
+                      <select
+                        value={config.textDecoration || 'none'}
+                        onChange={(e) => updateConfig({ textDecoration: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="none">None</option>
+                        <option value="underline">Underline</option>
+                        <option value="line-through">Line Through</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="mt-4">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Quick Presets</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({
+                          fontSize: '24px',
+                          fontWeight: 'bold',
+                          fontColor: '#1f2937',
+                          textAlign: 'left'
+                        })}
+                        className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                      >
+                        Heading
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({
+                          fontSize: '14px',
+                          fontWeight: 'normal',
+                          fontColor: '#6b7280',
+                          textAlign: 'left'
+                        })}
+                        className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                      >
+                        Body Text
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          fontColor: '#dc2626',
+                          textAlign: 'left'
+                        })}
+                        className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                      >
+                        Warning
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateConfig({
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          fontColor: '#2563eb',
+                          textAlign: 'left'
+                        })}
+                        className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                      >
+                        Info
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {config.type === 'section' && (
+              <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Section Description</label>
                   <textarea
@@ -557,11 +770,8 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                     </div>
                   )}
                 </div>
-              </div>
-            )}
 
-            {/* Nested Section Fields Management */}
-            {config.type === 'section' && (
+              {/* Nested Section Fields Management */}
               <div className="border-t border-gray-200 pt-4 mt-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-2">Fields in this Section</h4>
                 <p className="text-xs text-gray-500 mb-3">
@@ -587,6 +797,69 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                     ))}
                   </div>
                 )}
+              </div>
+              </>
+            )}
+
+            {config.type === 'tab' && (
+              <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Nested Tabs</h4>
+                  <p className="text-xs text-gray-500 mb-3">
+                    {(config.pages || []).length === 0 
+                      ? 'No tabs added yet. Add tabs below to organize your content.' 
+                      : `This tab group contains ${config.pages.length} tab${config.pages.length !== 1 ? 's' : ''}.`
+                    }
+                  </p>
+                  
+                  <div className="space-y-2 bg-gray-50 dark:bg-gray-900 p-3 rounded border border-gray-200">
+                    {(config.pages || []).map((page, idx) => (
+                      <div key={page.id || idx} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                        <input
+                          type="text"
+                          value={page.title || ''}
+                          onChange={(e) => {
+                            const newPages = [...(config.pages || [])]
+                            newPages[idx] = { ...page, title: e.target.value }
+                            updateConfig({ pages: newPages })
+                          }}
+                          placeholder={`Tab ${idx + 1} Title`}
+                          className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPages = (config.pages || []).filter((_, i) => i !== idx)
+                            updateConfig({ pages: newPages })
+                          }}
+                          className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Remove Tab"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPage = {
+                          id: `tab-${Date.now()}`,
+                          title: `Tab ${(config.pages || []).length + 1}`,
+                          sections: [{
+                            id: `section-${Date.now()}`,
+                            title: 'New Section',
+                            description: '',
+                            fields: []
+                          }]
+                        }
+                        updateConfig({ pages: [...(config.pages || []), newPage] })
+                      }}
+                      className="w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 border border-dashed border-blue-300 rounded transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Tab
+                    </button>
+                  </div>
               </div>
             )}
 

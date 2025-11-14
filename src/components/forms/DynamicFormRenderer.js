@@ -9,6 +9,60 @@ import { useToast } from '@/context/ToastContext'
 import { FiChevronRight, FiChevronLeft, FiSave, FiCheckCircle, FiCircle, FiAlertCircle } from 'react-icons/fi'
 
 /**
+ * Nested Tabs Component
+ */
+const NestedTabsRenderer = ({ tabsField, dataContext, pathPrefix, renderSection }) => {
+  const [activeNestedTab, setActiveNestedTab] = useState(0)
+  const pages = tabsField.pages || []
+  
+  if (pages.length === 0) {
+    return null
+  }
+
+  const currentTabPage = pages[activeNestedTab] || { sections: [] }
+
+  return (
+    <Card className="mb-4 mt-4 border-2 border-blue-200 dark:border-blue-800">
+      {/* Tab Header */}
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+            {tabsField.label || 'Nested Tabs'}
+          </h3>
+        </div>
+        <div className="flex gap-1 overflow-x-auto -mb-px">
+          {pages.map((page, idx) => (
+            <button
+              key={page.id || idx}
+              type="button"
+              onClick={() => setActiveNestedTab(idx)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeNestedTab === idx
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              {page.title || `Tab ${idx + 1}`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="space-y-4">
+        {currentTabPage.sections && currentTabPage.sections.length > 0 ? (
+          currentTabPage.sections.map((section, sectionIdx) => 
+            renderSection(section, dataContext, `${pathPrefix}-tab-${activeNestedTab}`, sectionIdx)
+          )
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No content in this tab.</p>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+/**
  * Dynamic Form Renderer Component
  * Renders forms dynamically based on form configuration from admin
  */
@@ -282,7 +336,7 @@ const DynamicFormRenderer = ({
       case 'email':
         return (
           <Input
-            label={field.label}
+            label={field.showLabel !== false ? field.label : ''}
             type={field.type}
             name={field.name}
             value={value || ''}
@@ -299,7 +353,7 @@ const DynamicFormRenderer = ({
       case 'number':
         return (
           <Input
-            label={field.label}
+            label={field.showLabel !== false ? field.label : ''}
             type="number"
             name={field.name}
             value={value || ''}
@@ -316,7 +370,7 @@ const DynamicFormRenderer = ({
       case 'date':
         return (
           <Input
-            label={field.label}
+            label={field.showLabel !== false ? field.label : ''}
             type="date"
             name={field.name}
             value={value || ''}
@@ -332,10 +386,12 @@ const DynamicFormRenderer = ({
       case 'textarea':
         return (
           <div className="flex flex-col gap-1">
+            {field.showLabel !== false && (
             <label className="text-sm font-medium text-gray-700">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
+            )}
             <textarea
               name={field.name}
               value={value || ''}
@@ -360,10 +416,12 @@ const DynamicFormRenderer = ({
       case 'select':
         return (
           <div className="flex flex-col gap-1">
+            {field.showLabel !== false && (
             <label className="text-sm font-medium text-gray-700">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
+            )}
             {field.searchable ? (
               // Searchable select (simplified - in production, use a library like react-select)
               <select
@@ -436,12 +494,14 @@ const DynamicFormRenderer = ({
           return (
             <div className="flex flex-col gap-1">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                {field.showLabel !== false && (
                 <div className="flex-shrink-0">
                   <label className="text-sm font-medium text-gray-700 block">
                     {field.label}
                     {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                 </div>
+                )}
                 <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
                   <div className="flex flex-wrap gap-4 sm:justify-end">
                     {field.options?.map((option, index) => {
@@ -495,12 +555,14 @@ const DynamicFormRenderer = ({
           return (
             <div className="flex flex-col gap-1">
               <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                {field.showLabel !== false && (
                 <div className="flex-shrink-0">
                   <label className="text-sm font-medium text-gray-700 block">
                     {field.label}
                     {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                 </div>
+                )}
                 <div className="flex-1 mt-1 sm:mt-0">
                   <div className="flex flex-wrap gap-4">
                     {field.options?.map((option, index) => {
@@ -552,10 +614,12 @@ const DynamicFormRenderer = ({
         }
         return (
           <div className="flex flex-col gap-1">
+            {field.showLabel !== false && (
             <label className="text-sm font-medium text-gray-700">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
+            )}
             <div className={`${
               field.orientation === 'horizontal'
                 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
@@ -613,12 +677,14 @@ const DynamicFormRenderer = ({
           return (
             <div className="flex flex-col gap-1">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                {field.showLabel !== false && (
                 <div className="flex-shrink-0">
                   <label className="text-sm font-medium text-gray-700 block">
                     {field.label}
                     {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                 </div>
+                )}
                 <div className="flex-1 mt-1 sm:mt-0 sm:text-right">
                   <div className="flex flex-wrap gap-4 sm:justify-end">
                     {field.options?.map((option, index) => {
@@ -663,12 +729,14 @@ const DynamicFormRenderer = ({
           return (
             <div className="flex flex-col gap-1">
               <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                {field.showLabel !== false && (
                 <div className="flex-shrink-0">
                   <label className="text-sm font-medium text-gray-700 block">
                     {field.label}
                     {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                 </div>
+                )}
                 <div className="flex-1 mt-1 sm:mt-0">
                   <div className="flex flex-wrap gap-4">
                     {field.options?.map((option, index) => {
@@ -711,10 +779,12 @@ const DynamicFormRenderer = ({
         }
         return (
           <div className="flex flex-col gap-1">
+            {field.showLabel !== false && (
             <label className="text-sm font-medium text-gray-700">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
+            )}
             <div className={`${
               field.orientation === 'horizontal'
                 ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:gap-4'
@@ -758,10 +828,30 @@ const DynamicFormRenderer = ({
           </div>
         )
 
+      case 'info':
+        // Info/Text display field - customizable text with styling
+        const infoStyle = {
+          fontSize: field.fontSize || '14px',
+          fontWeight: field.fontWeight || 'normal',
+          color: field.fontColor || '#374151',
+          fontFamily: field.fontFamily || 'inherit',
+          textAlign: field.textAlign || 'left',
+          fontStyle: field.fontStyle || 'normal',
+          textDecoration: field.textDecoration || 'none'
+        }
+        return (
+          <div 
+            className="w-full whitespace-pre-wrap break-words"
+            style={infoStyle}
+          >
+            {field.content || field.placeholder || ''}
+          </div>
+        )
 
       case 'section':
         // Nested section field
-        return renderSection(field, fieldPath => {
+        // Use dataContext if provided (for repeater sections), otherwise create from formData
+        const sectionDataContext = field.dataContext || (() => {
           // For nested sections, we need to handle the data path
           const nestedData = formData[field.name] || {}
           return {
@@ -781,11 +871,50 @@ const DynamicFormRenderer = ({
               }
             }
           }
-        }, field.name)
+        })
+        return renderSection(field, sectionDataContext, field.name)
+
+      case 'tab':
+        // Nested tabs field
+        // Use dataContext if provided (for repeater sections), otherwise create from formData
+        const tabDataContext = field.dataContext || (() => {
+          // For nested tabs, we need to handle the data path
+          const nestedData = formData[field.name] || {}
+          return {
+            getData: (key) => nestedData[key],
+            setData: (key, value) => {
+              const newNestedData = { ...nestedData, [key]: value }
+              handleFieldChange(field.name, newNestedData)
+            },
+            getError: (key) => errors[`${field.name}.${key}`],
+            clearError: (key) => {
+              if (errors[`${field.name}.${key}`]) {
+                setErrors(prev => {
+                  const newErrors = { ...prev }
+                  delete newErrors[`${field.name}.${key}`]
+                  return newErrors
+                })
+              }
+            }
+          }
+        })
+        return renderNestedTabs(field, tabDataContext, field.name)
 
       default:
         return null
     }
+  }
+
+  // Render nested tabs
+  const renderNestedTabs = (tabsField, dataContext, pathPrefix = '') => {
+    return (
+      <NestedTabsRenderer
+        tabsField={tabsField}
+        dataContext={dataContext}
+        pathPrefix={pathPrefix}
+        renderSection={renderSection}
+      />
+    )
   }
 
   // Render section (can be top-level or nested)
@@ -942,13 +1071,41 @@ const DynamicFormRenderer = ({
                           gridRow: gridRow
                         }}
                       >
-                        {renderField({
-                          ...field,
-                          name: `${sectionId}_${rowIndex}_${field.name}`,
-                          value: rowData[field.name] || '',
-                          onChange: (fieldName, value) => handleRepeaterChange(rowIndex, field.name, value),
-                          error: errors[`${sectionId}_${rowIndex}_${field.name}`]
-                        })}
+                        {field.type === 'section' || field.type === 'tab' ? (
+                          // For nested sections/tabs in repeaters, use data context pattern
+                          renderField({
+                            ...field,
+                            dataContext: () => {
+                              const nestedData = rowData[field.name] || {}
+                              return {
+                                getData: (key) => nestedData[key],
+                                setData: (key, value) => {
+                                  const newNestedData = { ...nestedData, [key]: value }
+                                  handleRepeaterChange(rowIndex, field.name, newNestedData)
+                                },
+                                getError: (key) => errors[`${sectionId}_${rowIndex}_${field.name}.${key}`],
+                                clearError: (key) => {
+                                  if (errors[`${sectionId}_${rowIndex}_${field.name}.${key}`]) {
+                                    setErrors(prev => {
+                                      const newErrors = { ...prev }
+                                      delete newErrors[`${sectionId}_${rowIndex}_${field.name}.${key}`]
+                                      return newErrors
+                                    })
+                                  }
+                                }
+                              }
+                            }
+                          })
+                        ) : (
+                          // Regular fields in repeaters
+                          renderField({
+                            ...field,
+                            name: `${sectionId}_${rowIndex}_${field.name}`,
+                            value: rowData[field.name] || '',
+                            onChange: (fieldName, value) => handleRepeaterChange(rowIndex, field.name, value),
+                            error: errors[`${sectionId}_${rowIndex}_${field.name}`]
+                          })
+                        )}
                       </div>
                     )
                   })}
@@ -1182,29 +1339,29 @@ const DynamicFormRenderer = ({
       {/* Main Form Content */}
       <div className="flex-1 min-w-0 flex flex-col h-full">
         
-        {/* Page Tabs for Multi-Page Forms */}
-        {isMultiPage && (
+          {/* Page Tabs for Multi-Page Forms */}
+          {isMultiPage && (
           <div className="px-4 sm:px-6 lg:px-8 pt-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex overflow-x-auto">
-              {pages.map((page, index) => (
-                <button
-                  key={page.id || index}
-                  type="button"
-                  onClick={() => handleTabSwitch(index)}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    currentPage === index
-                      ? 'border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400'
-                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  {page.title || `Page ${index + 1}`}
-                </button>
-              ))}
+              <div className="flex overflow-x-auto">
+                {pages.map((page, index) => (
+                  <button
+                    key={page.id || index}
+                    type="button"
+                    onClick={() => handleTabSwitch(index)}
+                    className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                      currentPage === index
+                        ? 'border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    {page.title || `Page ${index + 1}`}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form 
+          <form 
           onSubmit={handleSubmit} 
           autoComplete="off"
           className="flex-1 flex flex-col min-h-0"
@@ -1217,7 +1374,7 @@ const DynamicFormRenderer = ({
         >
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
           {sectionsToRender.map((section, sectionIndex) => renderSection(section, null, '', sectionIndex))}
-          </div>
+        </div>
       
         {/* Footer with Action Buttons - Fixed at bottom */}
         {mode !== 'view' && (
