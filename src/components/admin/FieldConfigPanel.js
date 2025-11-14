@@ -348,27 +348,91 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               </select>
             </div>
 
-            {/* Field Width - All types except nested items which handle their own width */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Field Width (Column Span)
-              </label>
-              <select
-                value={config.columnSpan || 12}
-                onChange={(e) => updateConfig({ columnSpan: parseInt(e.target.value) })}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value={12}>Full Width (12/12)</option>
-                <option value={6}>Half Width (6/12)</option>
-                <option value={4}>One Third (4/12)</option>
-                <option value={3}>One Fourth (3/12)</option>
-                <option value={8}>Two Thirds (8/12)</option>
-                <option value={9}>Three Fourths (9/12)</option>
-                <option value={2}>Small (2/12)</option>
-                <option value={1}>Tiny (1/12)</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Controls how much horizontal space this field takes up
+            {/* Field Width - Responsive Column Span */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Field Width (Responsive)
+                </label>
+              </div>
+              
+              {/* Mobile Width (< 640px) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  📱 Mobile (Default: Full Width)
+                </label>
+                <select
+                  value={typeof config.columnSpan === 'object' ? (config.columnSpan.mobile || 12) : 12}
+                  onChange={(e) => {
+                    const newSpan = typeof config.columnSpan === 'object' 
+                      ? { ...config.columnSpan, mobile: parseInt(e.target.value) }
+                      : { mobile: parseInt(e.target.value), tablet: config.columnSpan || 12, desktop: config.columnSpan || 12 }
+                    updateConfig({ columnSpan: newSpan })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={12}>Full Width (12/12)</option>
+                  <option value={6}>Half Width (6/12)</option>
+                  <option value={4}>One Third (4/12)</option>
+                  <option value={3}>One Fourth (3/12)</option>
+                  <option value={8}>Two Thirds (8/12)</option>
+                  <option value={9}>Three Fourths (9/12)</option>
+                </select>
+              </div>
+
+              {/* Tablet Width (640px - 1024px) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  📱 Tablet
+                </label>
+                <select
+                  value={typeof config.columnSpan === 'object' ? (config.columnSpan.tablet || 6) : (config.columnSpan || 12)}
+                  onChange={(e) => {
+                    const newSpan = typeof config.columnSpan === 'object' 
+                      ? { ...config.columnSpan, tablet: parseInt(e.target.value) }
+                      : { mobile: 12, tablet: parseInt(e.target.value), desktop: config.columnSpan || 12 }
+                    updateConfig({ columnSpan: newSpan })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={12}>Full Width (12/12)</option>
+                  <option value={6}>Half Width (6/12)</option>
+                  <option value={4}>One Third (4/12)</option>
+                  <option value={3}>One Fourth (3/12)</option>
+                  <option value={8}>Two Thirds (8/12)</option>
+                  <option value={9}>Three Fourths (9/12)</option>
+                  <option value={2}>Small (2/12)</option>
+                </select>
+              </div>
+
+              {/* Desktop Width (>= 1024px) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  🖥️ Desktop
+                </label>
+                <select
+                  value={typeof config.columnSpan === 'object' ? (config.columnSpan.desktop || 4) : (config.columnSpan || 12)}
+                  onChange={(e) => {
+                    const newSpan = typeof config.columnSpan === 'object' 
+                      ? { ...config.columnSpan, desktop: parseInt(e.target.value) }
+                      : { mobile: 12, tablet: 6, desktop: parseInt(e.target.value) }
+                    updateConfig({ columnSpan: newSpan })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:bg-white dark:focus:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={12}>Full Width (12/12)</option>
+                  <option value={6}>Half Width (6/12)</option>
+                  <option value={4}>One Third (4/12)</option>
+                  <option value={3}>One Fourth (3/12)</option>
+                  <option value={8}>Two Thirds (8/12)</option>
+                  <option value={9}>Three Fourths (9/12)</option>
+                  <option value={2}>Small (2/12)</option>
+                  <option value={1}>Tiny (1/12)</option>
+                </select>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-2">
+                💡 <strong>Tip:</strong> Mobile defaults to full width (12/12) for better readability. Adjust tablet and desktop widths to create responsive layouts.
               </p>
             </div>
 

@@ -8,7 +8,7 @@ import { FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiChevronDown, FiChevronRigh
 import Avatar from '@/components/common/Avatar'
 import Breadcrumb from '@/components/common/Breadcrumb'
 
-const Navbar = ({ pageTitle }) => {
+const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) => {
   const { user, logout, hasRole } = useAuth()
   const { theme = 'light', toggleTheme = () => {}, isDark = false } = useTheme() || {}
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -21,12 +21,23 @@ const Navbar = ({ pageTitle }) => {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Page Title */}
-          <div className="flex items-center gap-6 flex-1 min-w-0">
+          <div className="flex items-center gap-3 sm:gap-6 flex-1 min-w-0">
+            {/* Mobile menu button for sidebar */}
+            {showMenuButton && (
+              <button
+                onClick={onMenuClick}
+                className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Toggle menu"
+              >
+                <FiMenu className="text-xl" />
+              </button>
+            )}
+            
             <Link href="/pages" className="flex items-center space-x-2.5 flex-shrink-0">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-sm">
                 <span className="text-white font-bold text-lg">P</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent hidden sm:inline">
                 ProjectHub
               </span>
             </Link>
@@ -130,52 +141,83 @@ const Navbar = ({ pageTitle }) => {
             </div>
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile user menu button */}
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            aria-label="Toggle user menu"
           >
-            {showMobileMenu ? <FiX className="text-xl" /> : <FiMenu className="text-xl" />}
+            {showMobileMenu ? <FiX className="text-xl" /> : <FiUser className="text-xl" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile user menu */}
       {showMobileMenu && (
-        <div className="md:hidden border-t border-gray-200 bg-white">
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <div className="px-2 pt-2 pb-3 space-y-1">
+            {/* User Info */}
+            <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700 mb-2">
+              <Avatar name={user?.name} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user?.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+              </div>
+            </div>
+            
             {isAdmin && (
-              <Link
-                href="/admin"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                Admin Panel
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <FiMonitor className="w-5 h-5" />
+                  <span>Admin Panel</span>
+                </Link>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <FiSettings className="w-5 h-5" />
+                  <span>Settings</span>
+                </Link>
+              </>
             )}
+            
             <Link
               href="/profile"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
-              Profile
+              <FiUser className="w-5 h-5" />
+              <span>Profile</span>
             </Link>
+            
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
+              className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              <span>Theme</span>
-              <span className="text-sm text-gray-500">{isDark ? 'Dark' : 'Light'}</span>
+              <div className="flex items-center gap-3">
+                {isDark ? <FiMoon className="w-5 h-5" /> : <FiSun className="w-5 h-5" />}
+                <span>Theme</span>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{isDark ? 'Dark' : 'Light'}</span>
             </button>
-            <button
-              onClick={() => {
-                setShowMobileMenu(false)
-                logout()
-              }}
-              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
-            >
-              Logout
-            </button>
+            
+            <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false)
+                  logout()
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <FiLogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

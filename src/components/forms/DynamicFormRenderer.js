@@ -63,6 +63,39 @@ const NestedTabsRenderer = ({ tabsField, dataContext, pathPrefix, renderSection 
 }
 
 /**
+ * Helper function to get responsive column span classes
+ * Supports both old format (number) and new format (object with mobile/tablet/desktop)
+ */
+const getResponsiveColSpan = (columnSpan) => {
+  // Default values for responsive behavior
+  if (typeof columnSpan === 'number' || !columnSpan) {
+    // Backward compatibility: use same span for all sizes
+    const span = columnSpan || 12
+    return `col-span-${span}`
+  }
+  
+  // New format: { mobile: 12, tablet: 6, desktop: 4 }
+  const mobile = columnSpan.mobile || 12
+  const tablet = columnSpan.tablet || 6
+  const desktop = columnSpan.desktop || 4
+  
+  // Use Tailwind responsive classes
+  // Base (mobile): col-span-X
+  // sm (>= 640px): sm:col-span-X
+  // lg (>= 1024px): lg:col-span-X
+  return `col-span-${mobile} sm:col-span-${tablet} lg:col-span-${desktop}`
+}
+
+/**
+ * Helper function to get grid column style for absolute positioning
+ * Falls back to desktop value for inline styles
+ */
+const getGridColumnStyle = (columnSpan, gridColumn = 1) => {
+  const span = typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : (columnSpan || 12)
+  return `${gridColumn} / span ${span}`
+}
+
+/**
  * Dynamic Form Renderer Component
  * Renders forms dynamically based on form configuration from admin
  */
@@ -80,6 +113,7 @@ const DynamicFormRenderer = ({
   const [loading, setLoading] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [activeSectionId, setActiveSectionId] = useState(null)
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false) // Mobile right sidebar state
   const sectionRefs = useRef({})
 
   // Support both old (sections) and new (pages) structure
@@ -1065,9 +1099,9 @@ const DynamicFormRenderer = ({
                     return (
                       <div
                         key={`${field.name}-${rowIndex}`}
-                        className={`col-span-${columnSpan}`}
+                        className={getResponsiveColSpan(columnSpan)}
                         style={{
-                          gridColumn: `${gridColumn} / span ${columnSpan}`,
+                          gridColumn: getGridColumnStyle(columnSpan, gridColumn),
                           gridRow: gridRow
                         }}
                       >
@@ -1152,9 +1186,9 @@ const DynamicFormRenderer = ({
               return (
                 <div
                   key={field.name}
-                  className={`col-span-${columnSpan}`}
+                  className={getResponsiveColSpan(columnSpan)}
                   style={{
-                    gridColumn: `${gridColumn} / span ${columnSpan}`,
+                    gridColumn: getGridColumnStyle(columnSpan, gridColumn),
                     gridRow: gridRow
                   }}
                 >
@@ -1389,6 +1423,17 @@ const DynamicFormRenderer = ({
         </form>
       </div>
 
+      {/* Mobile: Floating button to open right sidebar */}
+      {sectionsToRender.length > 1 && mode !== 'view' && (
+        <button
+          onClick={() => setIsRightSidebarOpen(true)}
+          className="md:hidden fixed bottom-6 right-6 z-30 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all"
+          aria-label="Show sections"
+        >
+          <FiChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
       {/* Right Sidebar - Section Navigation */}
       {sectionsToRender.length > 1 && mode !== 'view' && (
         <RightResizableSidebar
@@ -1397,7 +1442,9 @@ const DynamicFormRenderer = ({
           defaultWidth={256}
           collapsedWidth={48}
           storageKey="formSectionSidebarWidth"
-          className="hidden xl:flex flex-shrink-0 h-full"
+          className="flex-shrink-0 h-full"
+          isOpen={isRightSidebarOpen}
+          onClose={() => setIsRightSidebarOpen(false)}
         >
           {({ isCollapsed }) => (
             <>
@@ -1417,7 +1464,10 @@ const DynamicFormRenderer = ({
                         <button
                           key={sectionId}
                           type="button"
-                          onClick={() => scrollToSection(sectionId)}
+                          onClick={() => {
+                            scrollToSection(sectionId)
+                            setIsRightSidebarOpen(false) // Close sidebar on mobile after clicking
+                          }}
                           className={`w-full text-left px-3 py-2.5 rounded-md transition-all ${
                             isActive
                               ? 'bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-500 dark:border-primary-600 ring-2 ring-primary-100 dark:ring-primary-900/30'

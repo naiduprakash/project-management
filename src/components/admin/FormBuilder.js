@@ -78,7 +78,13 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
           {field.label}
           {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
           <span className="ml-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
-            ({columnSpan}/12)
+            {typeof field.columnSpan === 'object' ? (
+              <span title={`Mobile: ${field.columnSpan.mobile || 12}/12, Tablet: ${field.columnSpan.tablet || 6}/12, Desktop: ${field.columnSpan.desktop || 4}/12`}>
+                (📱 {field.columnSpan.mobile || 12} | 📱 {field.columnSpan.tablet || 6} | 🖥️ {field.columnSpan.desktop || 4})
+              </span>
+            ) : (
+              `(${columnSpan}/12)`
+            )}
           </span>
         </label>
         {renderFieldPreview(field, pageIndex, sectionIndex, fieldIndex)}
@@ -1355,6 +1361,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const [activeId, setActiveId] = useState(null) // For drag overlay
   const [dragPreview, setDragPreview] = useState(null) // { pageIndex, sectionIndex, row, col, span }
   const [addingFieldTo, setAddingFieldTo] = useState(null) // { pageIndex, sectionIndex } - null when not adding
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false) // Mobile right sidebar state
   const sectionRefs = useRef({})
   const isDuplicatingRef = useRef(false) // Prevent multiple simultaneous duplicates
   
@@ -3664,6 +3671,17 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         </form>
       </div>
 
+      {/* Mobile: Floating button to open right sidebar */}
+      {currentPage.sections && currentPage.sections.length > 1 && (
+        <button
+          onClick={() => setIsRightSidebarOpen(true)}
+          className="md:hidden fixed bottom-6 right-6 z-30 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all"
+          aria-label="Show sections"
+        >
+          <FiMenu className="w-6 h-6" />
+        </button>
+      )}
+
       {/* Right Sidebar - Section Navigation */}
       {currentPage.sections && currentPage.sections.length > 1 && (
         <RightResizableSidebar
@@ -3673,6 +3691,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           collapsedWidth={48}
           storageKey="formBuilderSectionSidebarWidth"
           className="flex-shrink-0 h-full"
+          isOpen={isRightSidebarOpen}
+          onClose={() => setIsRightSidebarOpen(false)}
         >
           {({ isCollapsed }) => (
             <>
@@ -3692,7 +3712,10 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                         <button
                           key={sectionId}
                           type="button"
-                          onClick={() => scrollToSection(sectionId)}
+                          onClick={() => {
+                            scrollToSection(sectionId)
+                            setIsRightSidebarOpen(false) // Close sidebar on mobile after clicking
+                          }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-all ${
                             isActive
                               ? 'bg-primary-50 border-2 border-primary-500 ring-2 ring-primary-100 dark:bg-primary-900/20 dark:border-primary-400'

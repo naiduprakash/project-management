@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi'
 
 const ResizableSidebar = ({
   children,
@@ -11,14 +11,29 @@ const ResizableSidebar = ({
   collapsedWidth = 64,
   storageKey = 'sidebarWidth',
   className = '',
-  enableCollapse = true
+  enableCollapse = true,
+  isOpen = true,
+  onClose = () => {}
 }) => {
   const [sidebarWidth, setSidebarWidth] = useState(defaultWidth)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [showResizeHandle, setShowResizeHandle] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const sidebarRef = useRef(null)
   const lastWidthRef = useRef(defaultWidth)
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     // Load saved width from localStorage
@@ -30,8 +45,10 @@ const ResizableSidebar = ({
     }
   }, [storageKey])
 
-  // Handle mouse move for resizing
+  // Handle mouse move for resizing (desktop only)
   useEffect(() => {
+    if (isMobile) return
+
     const handleMouseMove = (e) => {
       if (!isResizing) return
 
@@ -59,9 +76,23 @@ const ResizableSidebar = ({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isResizing, minWidth, maxWidth, storageKey])
+  }, [isResizing, minWidth, maxWidth, storageKey, isMobile])
+
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isMobile, isOpen])
 
   const handleResizeStart = (e) => {
+    if (isMobile) return
     e.preventDefault()
     setIsResizing(true)
   }
@@ -80,63 +111,99 @@ const ResizableSidebar = ({
     }
   }
 
-  return (
-    <aside
-      ref={sidebarRef}
-      className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col relative ${className}`}
-      style={{
-        width: isCollapsed ? `${collapsedWidth}px` : `${sidebarWidth}px`,
-        transition: isResizing ? 'none' : 'width 0.3s ease'
-      }}
-      onMouseEnter={() => !isCollapsed && setShowResizeHandle(true)}
-      onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
-    >
-      {/* Children with collapsed state */}
-      {typeof children === 'function' ? children({ isCollapsed }) : children}
+  // Mobile: Don't render if not open
+  if (isMobile && !isOpen) {
+    return null
+  }
 
-      {/* Resize/Collapse Handle */}
-      <div
-        className={`absolute top-0 right-0 h-full transition-all duration-300 ${
-          isCollapsed
-            ? 'w-1 cursor-pointer'
-            : `w-1 cursor-col-resize ${
-                showResizeHandle || isResizing
-                  ? 'bg-gray-300 opacity-60'
-                  : 'bg-transparent opacity-0'
-              }`
-        }`}
-        onMouseDown={(e) => {
-          if (!isCollapsed) {
-            handleResizeStart(e)
-          }
+  return (
+    <>
+      {/* Mobile: Backdrop overlay */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        ref={sidebarRef}
+        className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col relative
+          ${isMobile ? 'fixed top-0 left-0 h-full z-50 shadow-xl' : ''}
+          ${className}`}
+        style={{
+          width: isMobile ? '280px' : (isCollapsed ? `${collapsedWidth}px` : `${sidebarWidth}px`),
+          transition: isResizing ? 'none' : (isMobile ? 'transform 0.3s ease' : 'width 0.3s ease'),
+          transform: isMobile ? (isOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none'
         }}
-        style={{ zIndex: 50 }}
+        onMouseEnter={() => !isCollapsed && !isMobile && setShowResizeHandle(true)}
+        onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
       >
-        {/* Drag/Toggle Icon */}
-        {enableCollapse && (
-          <div
-            className={`absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
-              isCollapsed || showResizeHandle || isResizing ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <div
-              className="bg-gray-400 rounded-full p-1 shadow-sm hover:bg-gray-500 hover:shadow-md transition-all duration-200 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleToggleCollapse(e)
-              }}
-              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        {/* Mobile: Close button */}
+        {isMobile && (
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Close sidebar"
             >
-              {isCollapsed ? (
-                <FiChevronRight className="text-white" size={12} />
-              ) : (
-                <FiChevronLeft className="text-white" size={12} />
-              )}
-            </div>
+              <FiX size={20} className="text-gray-500 dark:text-gray-400" />
+            </button>
           </div>
         )}
-      </div>
-    </aside>
+
+        {/* Children with collapsed state */}
+        {typeof children === 'function' ? children({ isCollapsed: isMobile ? false : isCollapsed }) : children}
+
+        {/* Desktop: Resize/Collapse Handle */}
+        {!isMobile && (
+          <div
+            className={`absolute top-0 right-0 h-full transition-all duration-300 ${
+              isCollapsed
+                ? 'w-1 cursor-pointer'
+                : `w-1 cursor-col-resize ${
+                    showResizeHandle || isResizing
+                      ? 'bg-gray-300 dark:bg-gray-600 opacity-60'
+                      : 'bg-transparent opacity-0'
+                  }`
+            }`}
+            onMouseDown={(e) => {
+              if (!isCollapsed) {
+                handleResizeStart(e)
+              }
+            }}
+            style={{ zIndex: 50 }}
+          >
+            {/* Drag/Toggle Icon */}
+            {enableCollapse && (
+              <div
+                className={`absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
+                  isCollapsed || showResizeHandle || isResizing ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <div
+                  className="bg-gray-400 dark:bg-gray-600 rounded-full p-1 shadow-sm hover:bg-gray-500 hover:shadow-md transition-all duration-200 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleToggleCollapse(e)
+                  }}
+                  title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                >
+                  {isCollapsed ? (
+                    <FiChevronRight className="text-white" size={12} />
+                  ) : (
+                    <FiChevronLeft className="text-white" size={12} />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </aside>
+    </>
   )
 }
 

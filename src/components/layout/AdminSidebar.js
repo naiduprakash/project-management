@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi'
 import ResizableSidebar from '@/components/common/ResizableSidebar'
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ isOpen = true, onClose = () => {} }) => {
   const pathname = usePathname()
 
   const menuItems = [
@@ -61,7 +61,11 @@ const AdminSidebar = () => {
   }
 
   return (
-    <ResizableSidebar storageKey="adminSidebarWidth">
+    <ResizableSidebar 
+      storageKey="adminSidebarWidth"
+      isOpen={isOpen}
+      onClose={onClose}
+    >
       {({ isCollapsed }) => (
         <>
           {/* Navigation Items */}
@@ -100,6 +104,7 @@ const AdminSidebar = () => {
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400'
                       }`}
                       title={isCollapsed ? item.label : item.description}
+                      onClick={onClose}
                     >
                       <Icon size={18} className="flex-shrink-0" />
                       {!isCollapsed && (

@@ -7,7 +7,7 @@ import { FiFileText } from 'react-icons/fi'
 import api from '@/lib/api'
 import ResizableSidebar from '@/components/common/ResizableSidebar'
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = true, onClose = () => {} }) => {
   const pathname = usePathname()
   const [pages, setPages] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +35,11 @@ const Sidebar = () => {
 
   if (loading) {
     return (
-      <ResizableSidebar storageKey="mainSidebarWidth">
+      <ResizableSidebar 
+        storageKey="mainSidebarWidth"
+        isOpen={isOpen}
+        onClose={onClose}
+      >
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-center p-4">
             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
@@ -46,7 +50,11 @@ const Sidebar = () => {
   }
 
   return (
-    <ResizableSidebar storageKey="mainSidebarWidth">
+    <ResizableSidebar 
+      storageKey="mainSidebarWidth"
+      isOpen={isOpen}
+      onClose={onClose}
+    >
       {({ isCollapsed }) => (
         <>
           {/* Navigation Items */}
@@ -71,6 +79,7 @@ const Sidebar = () => {
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400'
                       }`}
                       title={isCollapsed ? page.title : ''}
+                      onClick={onClose}
                     >
                       <FiFileText size={18} className="flex-shrink-0" />
                       {!isCollapsed && (
