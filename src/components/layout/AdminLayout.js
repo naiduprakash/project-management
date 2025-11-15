@@ -11,19 +11,19 @@ const AdminLayout = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Navbar 
         pageTitle={pageTitle}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         showMenuButton={true}
       />
       
-      <div className="flex" style={{ height: 'calc(100vh - 4rem)' }}>
+      <div className="flex flex-1 overflow-hidden">
         <AdminSidebar 
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

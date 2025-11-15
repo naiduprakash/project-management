@@ -18,26 +18,26 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
 
   return (
     <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-sm">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo and Page Title */}
-          <div className="flex items-center gap-3 sm:gap-6 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-6 flex-1 min-w-0">
             {/* Mobile menu button for sidebar */}
             {showMenuButton && (
               <button
                 onClick={onMenuClick}
-                className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="md:hidden p-2 sm:p-2.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px]"
                 aria-label="Toggle menu"
               >
-                <FiMenu className="text-xl" />
+                <FiMenu className="text-lg sm:text-xl" />
               </button>
             )}
             
-            <Link href="/pages" className="flex items-center space-x-2.5 flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-lg">P</span>
+            <Link href="/pages" className="flex items-center space-x-2 flex-shrink-0">
+              <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-white font-bold text-sm sm:text-base">P</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent hidden sm:inline">
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent hidden sm:inline">
                 ProjectHub
               </span>
             </Link>
@@ -56,16 +56,16 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
           </div>
 
           {/* Desktop Navigation - Right Aligned */}
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-2 sm:space-x-3">
             {/* User Menu */}
             <div className="ml-2">
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none group"
+                  className="flex items-center space-x-2 px-2 sm:px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none group min-h-[44px]"
                 >
                   <Avatar name={user?.name} size="sm" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user?.name}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:inline">{user?.name}</span>
                   <FiChevronDown className={`text-gray-500 dark:text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -75,7 +75,7 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
                       className="fixed inset-0 z-10"
                       onClick={() => setShowUserMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+                    <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                       <Link
                         href="/profile"
                         className="flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -144,10 +144,10 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
           {/* Mobile user menu button */}
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="md:hidden p-2 sm:p-2.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px]"
             aria-label="Toggle user menu"
           >
-            {showMobileMenu ? <FiX className="text-xl" /> : <FiUser className="text-xl" />}
+            {showMobileMenu ? <FiX className="text-lg sm:text-xl" /> : <FiUser className="text-lg sm:text-xl" />}
           </button>
         </div>
       </div>
@@ -169,18 +169,18 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
               <>
                 <Link
                   href="/admin"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 min-h-[44px]"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  <FiMonitor className="w-5 h-5" />
+                  <FiMonitor className="w-5 h-5 flex-shrink-0" />
                   <span>Admin Panel</span>
                 </Link>
                 <Link
                   href="/settings"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 min-h-[44px]"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  <FiSettings className="w-5 h-5" />
+                  <FiSettings className="w-5 h-5 flex-shrink-0" />
                   <span>Settings</span>
                 </Link>
               </>
@@ -188,16 +188,16 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
             
             <Link
               href="/profile"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
-              <FiUser className="w-5 h-5" />
+              <FiUser className="w-5 h-5 flex-shrink-0" />
               <span>Profile</span>
             </Link>
             
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center justify-between w-full px-3 py-3 rounded-lg text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active:bg-gray-100 dark:active:bg-gray-600 min-h-[44px]"
             >
               <div className="flex items-center gap-3">
                 {isDark ? <FiMoon className="w-5 h-5" /> : <FiSun className="w-5 h-5" />}
@@ -212,9 +212,9 @@ const Navbar = ({ pageTitle, onMenuClick = () => {}, showMenuButton = false }) =
                   setShowMobileMenu(false)
                   logout()
                 }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-lg text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:bg-red-100 dark:active:bg-red-900/40 min-h-[44px]"
               >
-                <FiLogOut className="w-5 h-5" />
+                <FiLogOut className="w-5 h-5 flex-shrink-0" />
                 <span>Logout</span>
               </button>
             </div>

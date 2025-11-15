@@ -62,54 +62,54 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar />
       
-      <main className="px-4 sm:px-6 lg:px-8 py-8">
+      <main className="px-3 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Welcome back, {user?.name}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Here's what's happening with your projects today.
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <div className="flex items-center">
-              <div className="p-3 bg-primary-100 rounded-lg">
-                <FiFileText className="text-2xl text-primary-600" />
+        {/* Stats Grid - Mobile first: 1 column */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card padding={false}>
+            <div className="flex items-center p-4 sm:p-6">
+              <div className="p-2.5 sm:p-3 bg-primary-100 dark:bg-primary-900/20 rounded-lg flex-shrink-0">
+                <FiFileText className="text-2xl sm:text-3xl text-primary-600 dark:text-primary-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.projects}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total Projects</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.projects}</p>
               </div>
             </div>
           </Card>
 
-          <Card>
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FiLayers className="text-2xl text-green-600" />
+          <Card padding={false}>
+            <div className="flex items-center p-4 sm:p-6">
+              <div className="p-2.5 sm:p-3 bg-green-100 dark:bg-green-900/20 rounded-lg flex-shrink-0">
+                <FiLayers className="text-2xl sm:text-3xl text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Available Pages</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pages}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Available Pages</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.pages}</p>
               </div>
             </div>
           </Card>
 
-          <Card>
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <FiUsers className="text-2xl text-purple-600" />
+          <Card padding={false}>
+            <div className="flex items-center p-4 sm:p-6">
+              <div className="p-2.5 sm:p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex-shrink-0">
+                <FiUsers className="text-2xl sm:text-3xl text-purple-600 dark:text-purple-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Forms</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.forms}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total Forms</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.forms}</p>
               </div>
             </div>
           </Card>
@@ -117,10 +117,10 @@ export default function DashboardPage() {
 
         {/* Recent Projects */}
         <Card>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Recent Projects</h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Recent Projects</h2>
             <Link href="/projects/new">
-              <Button size="sm">
+              <Button size="sm" className="w-full sm:w-auto min-h-[44px] sm:min-h-[32px]">
                 <FiPlus className="mr-2" />
                 New Project
               </Button>
@@ -128,33 +128,33 @@ export default function DashboardPage() {
           </div>
 
           {recentProjects.length === 0 ? (
-            <div className="text-center py-12">
-              <FiFileText className="mx-auto text-5xl text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">No projects yet</p>
+            <div className="text-center py-12 px-4">
+              <FiFileText className="mx-auto text-4xl sm:text-5xl text-gray-400 dark:text-gray-600 mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm sm:text-base">No projects yet</p>
               <Link href="/projects/new">
-                <Button>Create Your First Project</Button>
+                <Button className="min-h-[44px]">Create Your First Project</Button>
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {recentProjects.map(project => (
                 <div
                   key={project.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer active:bg-gray-100 dark:active:bg-gray-800 gap-3"
                   onClick={() => router.push(`/projects/${project.id}`)}
                 >
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{project.title}</h3>
-                    <p className="text-sm text-gray-600">{project.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">{project.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-1 sm:line-clamp-2">{project.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                       Created by {project.creator?.name} • {new Date(project.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      project.status === 'published' ? 'bg-green-100 text-green-800' :
-                      project.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
+                  <div className="flex-shrink-0">
+                    <span className={`inline-flex px-2.5 sm:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                      project.status === 'published' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' :
+                      project.status === 'draft' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400' :
+                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
                     }`}>
                       {project.status}
                     </span>

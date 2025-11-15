@@ -79,62 +79,65 @@ export default function ProjectsPage() {
   }
 
   const renderProjectCard = (project) => (
-    <Card key={project.id} className="p-6 hover:shadow-lg transition-shadow">
-      <div className="flex flex-col h-full">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
+    <Card key={project.id} padding={false} className="hover:shadow-lg transition-shadow flex flex-col h-full">
+      <div className="p-4 sm:p-6 flex flex-col h-full">
+        <div className="flex-1 mb-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">{project.title}</h3>
           {project.description && (
-            <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">{project.description}</p>
           )}
 
           <div className="flex flex-wrap gap-2 mb-4">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-              project.status === 'published' ? 'bg-green-100 text-green-800' :
-              project.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
+            <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+              project.status === 'published' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400' :
+              project.status === 'draft' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400' :
+              'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
             }`}>
               {project.status}
             </span>
             {project.form?.title && (
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 line-clamp-1">
                 {project.form.title}
               </span>
             )}
           </div>
 
-          <div className="text-sm text-gray-500">
+          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             <p>By {project.creator?.name || 'Unknown'}</p>
             <p>{formatDate(project.createdAt)}</p>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
           <Button
             size="sm"
             variant="outline"
             onClick={() => router.push(`/projects/${project.id}`)}
-            className="flex-1"
+            className="flex-1 min-h-[40px] sm:min-h-[32px]"
+            title="View"
           >
-            <FiEye className="mr-1" />
-            View
+            <FiEye className="mr-1 flex-shrink-0" />
+            <span className="hidden sm:inline">View</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => router.push(`/projects/${project.id}/edit`)}
-            className="flex-1"
+            className="flex-1 min-h-[40px] sm:min-h-[32px]"
+            title="Edit"
           >
-            <FiEdit className="mr-1" />
-            Edit
+            <FiEdit className="mr-1 flex-shrink-0" />
+            <span className="hidden sm:inline">Edit</span>
           </Button>
           <Button
             size="sm"
             variant="danger"
             onClick={() => handleDelete(project.id, project.title)}
-            className="flex-1"
+            className="flex-1 min-h-[40px] sm:min-h-[32px]"
+            title="Delete"
           >
-            <FiTrash2 className="mr-1" />
-            Delete
+            <FiTrash2 className="mr-1 flex-shrink-0" />
+            <span className="hidden sm:inline">Delete</span>
           </Button>
         </div>
       </div>
@@ -165,29 +168,31 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar />
       
-      <main className="px-4 sm:px-6 lg:px-8 py-8">
+      <main className="px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Projects</h1>
-            <p className="text-gray-600">Manage and track your projects</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2">Projects</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage and track your projects</p>
           </div>
-          <div className="flex gap-2 mt-4 sm:mt-0">
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <Button
               variant="outline"
               onClick={handleExport}
               disabled={projects.length === 0}
+              className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[32px]"
             >
-              <FiDownload className="mr-2" />
-              Export
+              <FiDownload className="mr-2 flex-shrink-0" />
+              <span className="hidden sm:inline">Export</span>
             </Button>
-            <Link href="/projects/new">
-              <Button>
-                <FiPlus className="mr-2" />
-                New Project
+            <Link href="/projects/new" className="flex-1 sm:flex-none">
+              <Button className="w-full min-h-[44px] sm:min-h-[32px]">
+                <FiPlus className="mr-2 flex-shrink-0" />
+                <span className="hidden sm:inline">New Project</span>
+                <span className="sm:hidden">New</span>
               </Button>
             </Link>
           </div>

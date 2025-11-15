@@ -22,6 +22,7 @@
   box-sizing: border-box;
 }
 
+/* Mobile-first typography and responsive design */
 html,
 body {
   @apply text-gray-700 bg-gray-50;
@@ -30,6 +31,23 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   overflow: hidden;
   height: 100%;
+  /* Mobile-first font sizing */
+  font-size: 16px;
+}
+
+/* Responsive font sizing */
+@screen sm {
+  html,
+  body {
+    font-size: 15px;
+  }
+}
+
+@screen lg {
+  html,
+  body {
+    font-size: 16px;
+  }
 }
 
 html.dark,
@@ -41,11 +59,34 @@ html.dark body {
   height: 100%;
 }
 
+/* Mobile-first responsive headings */
+h1 {
+  @apply text-2xl sm:text-3xl lg:text-4xl font-bold;
+}
+
+h2 {
+  @apply text-xl sm:text-2xl lg:text-3xl font-bold;
+}
+
+h3 {
+  @apply text-lg sm:text-xl font-semibold;
+}
+
+h4 {
+  @apply text-base sm:text-lg font-semibold;
+}
+
+p {
+  @apply text-sm sm:text-base;
+}
+
 /* Input styles with dark mode support */
 input, 
 textarea, 
 select {
-  @apply text-gray-900 bg-gray-50;
+  @apply text-gray-900 bg-gray-50 text-base;
+  /* Ensure font doesn't zoom on iOS when focused */
+  font-size: 16px;
 }
 
 html.dark input,
@@ -79,13 +120,25 @@ html.dark textarea::placeholder {
 input:disabled,
 textarea:disabled,
 select:disabled {
-  @apply bg-gray-100 text-gray-500;
+  @apply bg-gray-100 text-gray-500 cursor-not-allowed;
 }
 
 html.dark input:disabled,
 html.dark textarea:disabled,
 html.dark select:disabled {
-  @apply bg-gray-800 text-gray-600;
+  @apply bg-gray-800 text-gray-600 cursor-not-allowed;
+}
+
+/* Touch interaction optimizations */
+@supports (padding: max(0px)) {
+  input,
+  textarea,
+  select,
+  button {
+    /* Add safe area padding on notched devices */
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
 
 /* Custom scrollbar */

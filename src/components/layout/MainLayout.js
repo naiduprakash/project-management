@@ -26,7 +26,7 @@ const MainLayout = ({
             onClose={() => setIsSidebarOpen(false)}
           />
         )}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </main>
       </div>

@@ -126,13 +126,13 @@ const DataTable = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Search and Filters */}
       <Card>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Search */}
-            <div className="flex-1 w-full sm:max-w-md">
+          <div className="flex flex-col gap-4 sm:gap-2">
+            {/* Search - Full width on mobile */}
+            <div className="w-full sm:max-w-md">
               <div className="relative">
                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
@@ -140,17 +140,17 @@ const DataTable = ({
                   placeholder={searchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 sm:py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all min-h-[44px] sm:min-h-[36px]"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {/* Add New Button */}
               {onAdd && (
-                <Button size="sm" onClick={onAdd}>
+                <Button size="sm" onClick={onAdd} className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[32px]">
                   <FiPlus className="mr-2" />
-                  {addButtonText}
+                  <span className="hidden xs:inline">{addButtonText}</span>
                 </Button>
               )}
               
@@ -159,7 +159,7 @@ const DataTable = ({
                 <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
                   <button
                     onClick={() => setCurrentView('list')}
-                    className={`px-3 py-2 rounded-l-md transition-colors ${
+                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-l-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center ${
                       currentView === 'list'
                         ? 'bg-primary-600 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -170,7 +170,7 @@ const DataTable = ({
                   </button>
                   <button
                     onClick={() => setCurrentView('grid')}
-                    className={`px-3 py-2 rounded-r-md transition-colors ${
+                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-r-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center ${
                       currentView === 'grid'
                         ? 'bg-primary-600 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -188,9 +188,10 @@ const DataTable = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
+                  className="min-h-[44px] sm:min-h-[32px]"
                 >
                   <FiFilter className="mr-2" />
-                  Filters
+                  <span className="hidden xs:inline">Filters</span>
                   {Object.keys(filterValues).length > 0 && (
                     <span className="ml-2 px-2 py-0.5 bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-full text-xs">
                       {Object.keys(filterValues).filter(k => filterValues[k] && filterValues[k] !== 'all').length}
@@ -207,7 +208,7 @@ const DataTable = ({
           {/* Filter Options */}
           {showFilters && filters.length > 0 && (
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {filters.map(filter => (
                   <div key={filter.key}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -216,7 +217,7 @@ const DataTable = ({
                     <select
                       value={filterValues[filter.key] || 'all'}
                       onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all min-h-[44px] sm:min-h-[36px]"
                     >
                       <option value="all">All {filter.label}</option>
                       {filter.options.map(option => (
@@ -231,7 +232,7 @@ const DataTable = ({
               
               {Object.keys(filterValues).length > 0 && (
                 <div className="mt-4">
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="min-h-[44px] sm:min-h-[32px]">
                     Clear all filters
                   </Button>
                 </div>
@@ -244,10 +245,10 @@ const DataTable = ({
       {/* Data Display */}
       {sortedData.length === 0 ? (
         <Card>
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">{emptyMessage}</p>
+          <div className="text-center py-12 px-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{ emptyMessage}</p>
             {onEmptyAction && (
-              <Button onClick={onEmptyAction}>
+              <Button onClick={onEmptyAction} className="min-h-[44px]">
                 <FiPlus className="mr-2" />
                 {emptyActionText || addButtonText}
               </Button>
@@ -256,7 +257,7 @@ const DataTable = ({
         </Card>
       ) : currentView === 'grid' && renderCard ? (
         // Grid View with Custom Cards
-        <div className={`grid ${gridCols} gap-6`}>
+        <div className={`grid ${gridCols} gap-4 sm:gap-6`}>
           {sortedData.map((item, index) => (
             <div key={item.id || index}>
               {renderCard(item)}
@@ -264,11 +265,11 @@ const DataTable = ({
           ))}
         </div>
       ) : (
-        // List/Table View
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800/50">
+        // List/Table View - Responsive with horizontal scroll on small screens
+        <Card className="overflow-x-auto">
+          <div className="min-w-full inline-block">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm sm:text-base">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0">
                 <tr>
                   {columns.map((column, index) => {
                     const isSortable = column.sortKey || column.accessor
@@ -280,7 +281,7 @@ const DataTable = ({
                     return (
                       <th
                         key={index}
-                        className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative ${
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative whitespace-nowrap ${
                           align === 'right' ? 'text-right' : 
                           align === 'center' ? 'text-center' : 'text-left'
                         } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors' : ''}`}
@@ -292,7 +293,8 @@ const DataTable = ({
                           align === 'right' ? 'justify-end' : 
                           align === 'center' ? 'justify-center' : 'justify-start'
                         }`}>
-                          <span>{column.header}</span>
+                          <span className="hidden sm:inline">{column.header}</span>
+                          <span className="sm:hidden">{column.header?.substring(0, 3)}</span>
                           {isSortable && (
                             <span className="inline-flex flex-col ml-0.5" style={{ width: '10px', height: '14px' }}>
                               <FiChevronUp 
@@ -368,7 +370,7 @@ const DataTable = ({
                   <tr
                     key={item.id || rowIndex}
                     onClick={() => onRowClick && onRowClick(item)}
-                    className={onRowClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors' : ''}
+                    className={onRowClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors active:bg-gray-100 dark:active:bg-gray-700' : ''}
                   >
                     {columns.map((column, colIndex) => {
                       const align = getColumnAlignment(column, colIndex)
@@ -379,7 +381,7 @@ const DataTable = ({
                       return (
                         <td
                           key={colIndex}
-                          className={`px-6 py-4 text-sm text-gray-900 dark:text-gray-100 ${column.noWrap ? 'whitespace-nowrap' : ''}`}
+                          className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900 dark:text-gray-100 ${column.noWrap ? 'whitespace-nowrap' : ''}`}
                         >
                           <div className={`flex ${
                             align === 'right' ? 'justify-end' : 
@@ -397,8 +399,8 @@ const DataTable = ({
           </div>
 
           {/* Results count */}
-          <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Showing {sortedData.length} of {data.length} {sortedData.length === 1 ? 'result' : 'results'}
               {sortConfig.key && (
                 <span className="ml-2 text-xs text-gray-500 dark:text-gray-500">
