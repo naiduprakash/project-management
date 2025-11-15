@@ -19,7 +19,16 @@ const Input = ({
       )}
       <input
         className={cn(
-          'px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600',
+          // Mobile-first responsive padding and height
+          'px-4 py-3 sm:px-3 sm:py-2.5 text-base sm:text-sm',
+          'border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-md',
+          'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+          'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+          'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+          'focus:bg-white dark:focus:bg-gray-700 transition-all',
+          'disabled:bg-gray-100 dark:disabled:bg-gray-900 disabled:text-gray-500 dark:disabled:text-gray-600',
+          // Mobile optimizations
+          'min-h-[44px] sm:min-h-[36px]', // Larger touch target on mobile
           error && 'border-red-400 focus:ring-red-400 focus:border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-800',
           className
         )}

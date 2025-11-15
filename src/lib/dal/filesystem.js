@@ -7,10 +7,19 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-// Use /tmp on serverless (Vercel), local data/ directory in development
-const DATA_DIR = process.env.VERCEL 
-  ? path.resolve('/tmp', 'data')
-  : path.resolve(process.cwd(), 'data');
+// For Vercel deployments, filesystem storage is not persistent
+// Each serverless function call has its own /tmp directory
+let DATA_DIR;
+if (process.env.VERCEL) {
+  DATA_DIR = path.resolve('/tmp', 'data');
+
+  console.error('🚨 CRITICAL: Filesystem storage on Vercel is not persistent!');
+  console.error('🚨 Data will be lost between API calls. This is why entries disappear.');
+  console.error('🚨 SOLUTION: Implement a database (Vercel Postgres, MongoDB, etc.) for production.');
+  console.error('🚨 For now, the app will work but data won\'t persist between sessions.');
+} else {
+  DATA_DIR = path.resolve(process.cwd(), 'data');
+}
 
 const COLLECTIONS = {
   users: 'users.json',

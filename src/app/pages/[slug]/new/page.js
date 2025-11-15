@@ -19,6 +19,7 @@ export default function NewEntryPage() {
   const [page, setPage] = useState(null)
   const [selectedForm, setSelectedForm] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [creatingForm, setCreatingForm] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -42,10 +43,68 @@ export default function NewEntryPage() {
       }
       
       setPage(currentPage)
-      
-      // Auto-select first form if only one exists
-      if (currentPage.forms && currentPage.forms.length === 1) {
+
+      // Handle forms
+      if (currentPage.forms && currentPage.forms.length > 0) {
+        // Auto-select first form (every page should have only one form)
         setSelectedForm(currentPage.forms[0])
+      } else {
+        // No forms exist - create default form
+        setCreatingForm(true)
+        try {
+          const defaultFormData = {
+            pageId: currentPage.id,
+            title: `${currentPage.title} Form`,
+            description: `Default form for ${currentPage.title} page`,
+            sections: [
+              {
+                id: 'default-section',
+                title: 'Basic Information',
+                type: 'section',
+                fields: [
+                  {
+                    id: 'entry-title',
+                    type: 'text',
+                    label: 'Entry Title',
+                    name: 'title',
+                    required: true,
+                    placeholder: 'Enter a title for this entry',
+                    columnSpan: { mobile: 12, tablet: 12, desktop: 12 }
+                  },
+                  {
+                    id: 'entry-description',
+                    type: 'textarea',
+                    label: 'Entry Description',
+                    name: 'description',
+                    required: false,
+                    placeholder: 'Enter a description (optional)',
+                    columnSpan: { mobile: 12, tablet: 12, desktop: 12 }
+                  }
+                ]
+              }
+            ],
+            settings: {
+              multiPage: false,
+              showProgressBar: false,
+              allowSaveDraft: true
+            },
+            published: true
+          }
+
+          const formResponse = await api.post('/forms', defaultFormData)
+          const newForm = formResponse.data.form
+
+          // Update page with the new form
+          setPage({ ...currentPage, forms: [newForm] })
+          setSelectedForm(newForm)
+          setCreatingForm(false)
+        } catch (formError) {
+          console.error('Failed to create default form:', formError)
+          setCreatingForm(false)
+          showError('Failed to create form for this page')
+          router.push('/')
+          return
+        }
       }
     } catch (err) {
       showError('Failed to load page')
@@ -97,7 +156,7 @@ export default function NewEntryPage() {
     }
   }
 
-  if (loading) {
+  if (loading || creatingForm) {
     return (
       <MainLayout>
         <Loading fullScreen />
@@ -124,29 +183,7 @@ export default function NewEntryPage() {
         
         {/* Main Content */}
         <div className="flex-1 min-h-0">
-          {!selectedForm && page.forms && page.forms.length > 1 ? (
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex items-center justify-center">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Select a Form
-                </h2>
-                <div className="space-y-3">
-                  {page.forms.map((form) => (
-                    <button
-                      key={form.id}
-                      onClick={() => setSelectedForm(form)}
-                      className="w-full text-left px-4 py-3 border border-gray-300 rounded-md hover:bg-primary-50 hover:border-primary-500 transition-colors"
-                    >
-                      <h3 className="font-medium text-gray-900">{form.title}</h3>
-                      {form.description && (
-                        <p className="text-sm text-gray-600 mt-1">{form.description}</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : selectedForm ? (
+          {selectedForm ? (
             <div className="h-full">
               <DynamicFormRenderer
                 form={selectedForm}

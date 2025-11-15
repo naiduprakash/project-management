@@ -37,7 +37,7 @@ const hoverStyles = `
 /**
  * Sortable Field Component with Resizable Edges
  */
-const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPath = [], renderFieldPreview, onOpenConfig, onDelete, onDuplicate, columnSpan, onResize, onResizeComplete }) => {
+const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPath = [], isDesktop, renderFieldPreview, onOpenConfig, onDelete, onDuplicate, columnSpan, onResize, onResizeComplete }) => {
   const {
     attributes,
     listeners,
@@ -48,6 +48,9 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
   } = useSortable({ id })
 
   const [duplicateDisabled, setDuplicateDisabled] = useState(false)
+
+  // Use the desktop detection passed from parent
+  const isMobile = !isDesktop
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -79,7 +82,8 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
           {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
           <span className="ml-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
             {typeof field.columnSpan === 'object' ? (
-              <span title={`Mobile: ${field.columnSpan.mobile || 12}/12, Tablet: ${field.columnSpan.tablet || 6}/12, Desktop: ${field.columnSpan.desktop || 4}/12`}>
+              <span title={`Mobile: ${field.columnSpan.mobile || 12}/12, Tablet: ${field.columnSpan.tablet || 6}/12, Desktop: ${field.columnSpan.desktop || 4}/12`} className="inline-flex items-center gap-1">
+                <span className="text-blue-500">↔️</span>
                 (📱 {field.columnSpan.mobile || 12} | 📱 {field.columnSpan.tablet || 6} | 🖥️ {field.columnSpan.desktop || 4})
               </span>
             ) : (
@@ -92,73 +96,73 @@ const SortableField = ({ id, field, pageIndex, sectionIndex, fieldIndex, fieldPa
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 select-none">{field.hint}</p>
         )}
 
-        {/* Overlay controls on hover */}
-        <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          {/* Drag Handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-grab active:cursor-grabbing"
-            title="Drag to reorder"
-          >
-            <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+        {/* Action controls */}
+        <div className={`absolute flex gap-1 ${isMobile ? 'top-2 right-2' : 'bottom-2 left-2 opacity-0 group-hover:opacity-100'} transition-opacity`}>
+            {/* Drag Handle */}
+            <div
+              {...attributes}
+              {...listeners}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-grab active:cursor-grabbing"
+              title="Drag to reorder"
+            >
+              <FiMove className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onOpenConfig(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              title="Configure field"
+            >
+              <FiSettings className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+            </button>
+
+            {/* Decrease Width Button */}
+            <button
+              type="button"
+              onClick={() => handleResize(columnSpan - 1)}
+              disabled={columnSpan <= 1}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
+              title={columnSpan <= 1 ? "Minimum width reached" : "Decrease width"}
+            >
+              <FiMinus className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            </button>
+
+            {/* Increase Width Button */}
+            <button
+              type="button"
+              onClick={() => handleResize(columnSpan + 1)}
+              disabled={columnSpan >= 12}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
+              title={columnSpan >= 12 ? "Maximum width reached" : "Increase width"}
+            >
+              <FiMaximize2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setDuplicateDisabled(true)
+                setTimeout(() => setDuplicateDisabled(false), 700) // Prevent rapid double triggers
+                onDuplicate(pageIndex, sectionIndex, fieldIndex, fieldPath)
+              }}
+              disabled={duplicateDisabled}
+              className={`p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${duplicateDisabled ? 'opacity-50 pointer-events-none' : ''}`}
+              title="Duplicate field"
+            >
+              <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(pageIndex, sectionIndex, fieldIndex, fieldPath)}
+              className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              title="Delete field"
+            >
+              <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+            </button>
           </div>
-          
-          <button
-            type="button"
-            onClick={() => onOpenConfig(pageIndex, sectionIndex, fieldIndex, fieldPath)}
-            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            title="Configure field"
-          >
-            <FiSettings className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-          </button>
-          
-          {/* Decrease Width Button */}
-          <button
-            type="button"
-            onClick={() => handleResize(columnSpan - 1)}
-            disabled={columnSpan <= 1}
-            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
-            title={columnSpan <= 1 ? "Minimum width reached" : "Decrease width"}
-          >
-            <FiMinus className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-          </button>
-          
-          {/* Increase Width Button */}
-          <button
-            type="button"
-            onClick={() => handleResize(columnSpan + 1)}
-            disabled={columnSpan >= 12}
-            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
-            title={columnSpan >= 12 ? "Maximum width reached" : "Increase width"}
-          >
-            <FiMaximize2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-          </button>
-          
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setDuplicateDisabled(true)
-              setTimeout(() => setDuplicateDisabled(false), 700) // Prevent rapid double triggers
-              onDuplicate(pageIndex, sectionIndex, fieldIndex, fieldPath)
-            }}
-            disabled={duplicateDisabled}
-            className={`p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${duplicateDisabled ? 'opacity-50 pointer-events-none' : ''}`}
-            title="Duplicate field"
-          >
-            <FiCopy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(pageIndex, sectionIndex, fieldIndex, fieldPath)}
-            className="p-1.5 bg-white dark:bg-gray-800 shadow-md rounded border border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            title="Delete field"
-          >
-            <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -181,7 +185,7 @@ const DragOverlayField = ({ field, columnSpan }) => {
           {(field.required || field.validation?.required) && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
         </label>
         <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 px-2 py-1 rounded">
-          {columnSpan}/12
+          {typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : columnSpan}/12
         </span>
       </div>
       <div className="text-xs text-gray-500 dark:text-gray-400">Moving field...</div>
@@ -193,6 +197,15 @@ const DragOverlayField = ({ field, columnSpan }) => {
  * Field Type Selector Panel - Right panel for selecting field types (matches FieldConfigPanel style)
  */
 const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // ESC key handler
   useEffect(() => {
     const handleEsc = (e) => {
@@ -203,6 +216,16 @@ const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
+
+  // Lock body scroll when mobile panel is open
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [isMobile])
   
   const fieldTypes = [
     { type: 'text', label: 'Text', icon: FiType, description: 'Single line text input', color: 'blue' },
@@ -221,7 +244,22 @@ const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
   ]
   
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto">
+    <>
+      {/* Mobile: Backdrop overlay */}
+      {isMobile && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={onClose}
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
+
+      {/* Panel */}
+      <div className={`bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto ${
+        isMobile
+          ? 'fixed inset-y-0 right-0 w-full max-w-sm'
+          : 'fixed inset-y-0 right-0 w-96'
+      }`}>
       {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
@@ -284,7 +322,8 @@ const FieldTypeSelectorPanel = ({ onSelect, onClose, sectionTitle }) => {
           Cancel (ESC)
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -330,11 +369,12 @@ const parseFieldPathFromId = (pathParts) => {
 /**
  * Recursive Section Renderer - Handles both top-level and nested sections
  */
-const RecursiveSectionContent = ({ 
-  section, 
-  pageIndex, 
-  sectionIndex, 
+const RecursiveSectionContent = ({
+  section,
+  pageIndex,
+  sectionIndex,
   fieldPath = [], // Array tracking the path to nested field: [fieldIndex1, fieldIndex2, ...]
+  isDesktop,
   renderFieldPreview,
   onStartAddingField,
   onOpenFieldConfig,
@@ -376,6 +416,96 @@ const RecursiveSectionContent = ({
       )
     }
 
+    // Mobile: Simple stacked layout without grid cells
+    if (!isDesktop) {
+      // Sort fields by their grid position to maintain desktop visual order
+      const sortedFields = fields.map((field, index) => ({ field, originalIndex: index }))
+        .sort((a, b) => {
+          const aRow = a.field.gridRow || 1
+          const bRow = b.field.gridRow || 1
+          const aCol = a.field.gridColumn || 1
+          const bCol = b.field.gridColumn || 1
+
+          if (aRow !== bRow) return aRow - bRow
+          return aCol - bCol
+        })
+
+      return (
+        <div className="space-y-3">
+          {sortedFields.map(({ field, originalIndex: fieldIndex }) => {
+            const fieldId = getFieldId(fieldIndex)
+            return (
+              <div key={fieldId} className="relative w-full">
+                {field.type === 'section' ? (
+                  <SortableNestedSection
+                    id={fieldId}
+                    field={field}
+                    pageIndex={pageIndex}
+                    sectionIndex={sectionIndex}
+                    fieldIndex={fieldIndex}
+                    fieldPath={[...fieldPath, fieldIndex]}
+                    columnSpan={typeof field.columnSpan === 'object' ? (field.columnSpan.desktop || 4) : (field.columnSpan || 4)}
+                    isDesktop={isDesktop}
+                    renderFieldPreview={renderFieldPreview}
+                    onStartAddingField={onStartAddingField}
+                    onOpenFieldConfig={onOpenFieldConfig}
+                    onDeleteField={onDeleteField}
+                    onDuplicateField={onDuplicateField}
+                    onResizeField={onResizeField}
+                    onUpdateField={onUpdateField}
+                    activeId={activeId}
+                    dragPreview={dragPreview}
+                    setDragPreview={setDragPreview}
+                    onAddSectionToNestedTab={onAddSectionToNestedTab}
+                    onDeleteSectionFromNestedTab={onDeleteSectionFromNestedTab}
+                  />
+                ) : field.type === 'tab' ? (
+                  <SortableNestedTabs
+                    id={fieldId}
+                    field={field}
+                    pageIndex={pageIndex}
+                    sectionIndex={sectionIndex}
+                    fieldIndex={fieldIndex}
+                    fieldPath={[...fieldPath, fieldIndex]}
+                    columnSpan={typeof field.columnSpan === 'object' ? (field.columnSpan.desktop || 4) : (field.columnSpan || 4)}
+                    onOpenFieldConfig={onOpenFieldConfig}
+                    onDeleteField={onDeleteField}
+                    onDuplicateField={onDuplicateField}
+                    onUpdateField={onUpdateField}
+                    activeId={activeId}
+                    onAddSection={onAddSectionToNestedTab}
+                    onDeleteSection={onDeleteSectionFromNestedTab}
+                    renderFieldPreview={renderFieldPreview}
+                    onStartAddingField={onStartAddingField}
+                    onResizeField={onResizeField}
+                    dragPreview={dragPreview}
+                    setDragPreview={setDragPreview}
+                  />
+                ) : (
+                  <SortableField
+                    id={fieldId}
+                    field={field}
+                    pageIndex={pageIndex}
+                    sectionIndex={sectionIndex}
+                    fieldIndex={fieldIndex}
+                    fieldPath={fieldPath}
+                    columnSpan={typeof field.columnSpan === 'object' ? (field.columnSpan.desktop || 4) : (field.columnSpan || 4)}
+                    isDesktop={isDesktop}
+                    renderFieldPreview={renderFieldPreview}
+                    onOpenConfig={onOpenFieldConfig}
+                    onDelete={onDeleteField}
+                    onDuplicate={onDuplicateField}
+                    onResize={onResizeField}
+                    onResizeComplete={onResizeField}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
     // Calculate total rows needed (always add 1 extra row for dragging)
     const maxRow = fields.reduce((max, field) =>
       Math.max(max, field.gridRow || 1), 0
@@ -396,15 +526,18 @@ const RecursiveSectionContent = ({
 
         if (fieldAtCol) {
           const fieldIndex = fields.indexOf(fieldAtCol)
-          const span = fieldAtCol.columnSpan || 4
+          const span = typeof fieldAtCol.columnSpan === 'object' ? (fieldAtCol.columnSpan.desktop || 4) : (fieldAtCol.columnSpan || 4)
 
           cells.push(
             <div
               key={`field-${row}-${col}`}
-              className="relative"
+              className={`relative ${!isDesktop ? 'w-full' : ''}`}
               style={{
-                gridColumn: `${col} / span ${span}`,
-                gridRow: row
+                // Only use absolute positioning on desktop, no styles on mobile/tablet
+                ...(isDesktop ? {
+                  gridColumn: getGridColumnStyleForBuilder(fieldAtCol.columnSpan, col),
+                  gridRow: row
+                } : {})
               }}
             >
               {fieldAtCol.type === 'section' ? (
@@ -417,6 +550,7 @@ const RecursiveSectionContent = ({
                   fieldIndex={fieldIndex}
                   fieldPath={[...fieldPath, fieldIndex]}
                   columnSpan={span}
+                  isDesktop={isDesktop}
                   renderFieldPreview={renderFieldPreview}
                   onStartAddingField={onStartAddingField}
                   onOpenFieldConfig={onOpenFieldConfig}
@@ -440,6 +574,7 @@ const RecursiveSectionContent = ({
                   fieldIndex={fieldIndex}
                   fieldPath={[...fieldPath, fieldIndex]}
                   columnSpan={span}
+                  isDesktop={isDesktop}
                   onOpenFieldConfig={onOpenFieldConfig}
                   onDeleteField={onDeleteField}
                   onDuplicateField={onDuplicateField}
@@ -463,6 +598,7 @@ const RecursiveSectionContent = ({
                   fieldIndex={fieldIndex}
                   fieldPath={fieldPath}
                   columnSpan={span}
+                  isDesktop={isDesktop}
                   renderFieldPreview={renderFieldPreview}
                   onOpenConfig={onOpenFieldConfig}
                   onDelete={onDeleteField}
@@ -605,7 +741,11 @@ const RecursiveSectionContent = ({
       }
 
       rows.push(
-        <div key={row} className="grid grid-cols-12 gap-3" style={{ gridAutoRows: 'min-content' }}>
+        <div
+          key={row}
+          className={isDesktop ? "grid grid-cols-12 gap-3" : "space-y-3"}
+          style={isDesktop ? { gridAutoRows: 'min-content' } : {}}
+        >
           {cells}
         </div>
       )
@@ -641,14 +781,15 @@ const RecursiveSectionContent = ({
 /**
  * Sortable Nested Section Component - Wraps nested sections with drag support
  */
-const SortableNestedSection = ({ 
-  id, 
-  field, 
-  pageIndex, 
-  sectionIndex, 
+const SortableNestedSection = ({
+  id,
+  field,
+  pageIndex,
+  sectionIndex,
   fieldIndex,
   fieldPath,
   columnSpan,
+  isDesktop,
   renderFieldPreview,
   onStartAddingField,
   onOpenFieldConfig,
@@ -757,7 +898,7 @@ const NestedSectionWrapper = ({
         )}
         {columnSpan && (
           <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
-            {columnSpan}/12
+            {typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : columnSpan}/12
           </span>
         )}
       </div>
@@ -774,6 +915,7 @@ const NestedSectionWrapper = ({
             pageIndex={pageIndex}
             sectionIndex={sectionIndex}
             fieldPath={fieldPath}
+            isDesktop={isDesktop}
             renderFieldPreview={renderFieldPreview}
             onStartAddingField={onStartAddingField}
             onOpenFieldConfig={onOpenFieldConfig}
@@ -845,6 +987,7 @@ const SortableNestedTabs = ({
   fieldIndex,
   fieldPath,
   columnSpan,
+  isDesktop,
   onOpenFieldConfig,
   onDeleteField,
   onDuplicateField,
@@ -882,6 +1025,7 @@ const SortableNestedTabs = ({
         fieldIndex={fieldIndex}
         fieldPath={fieldPath}
         columnSpan={columnSpan}
+        isDesktop={isDesktop}
         onOpenFieldConfig={onOpenFieldConfig}
         onDeleteField={onDeleteField}
         onDuplicateField={onDuplicateField}
@@ -910,6 +1054,7 @@ const NestedTabsWrapper = ({
   fieldIndex,
   fieldPath,
   columnSpan,
+  isDesktop,
   onOpenFieldConfig,
   onDeleteField,
   onDuplicateField,
@@ -967,7 +1112,7 @@ const NestedTabsWrapper = ({
         </h3>
         {columnSpan && (
           <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
-            {columnSpan}/12
+            {typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : columnSpan}/12
           </span>
         )}
         <span className="px-2 py-0.5 text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full">
@@ -978,11 +1123,11 @@ const NestedTabsWrapper = ({
       {/* Tab Navigation */}
       {!isCollapsed && pages.length > 0 && (
         <div className="flex items-center gap-2 mb-4 border-b border-blue-200 dark:border-blue-800">
-          <div className="flex-1 flex items-center gap-1 overflow-x-auto">
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}>
             {pages.map((page, idx) => (
               <div 
                 key={page.id || idx}
-                className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors flex-shrink-0 ${
                   activeTab === idx
                     ? 'border-blue-600 dark:border-blue-400'
                     : 'border-transparent'
@@ -1130,6 +1275,7 @@ const NestedTabsWrapper = ({
                         pageIndex={pageIndex}
                         sectionIndex={sectionIndex}
                         fieldPath={[...fieldPath, 'pages', activeTab, 'sections', secIdx]}
+                        isDesktop={isDesktop}
                         renderFieldPreview={renderFieldPreview}
                         onStartAddingField={onStartAddingField}
                         onOpenFieldConfig={onOpenFieldConfig}
@@ -1300,8 +1446,32 @@ const SortableSection = ({ id, section, pageIndex, sectionIndex, children, onOpe
  * Pages > Sections > Fields
  * With Drag-and-Drop and 12-column Grid Layout
  */
+/**
+ * Helper function to get responsive column span classes for FormBuilder
+ */
+// Note: On mobile, we use w-full instead of responsive grid classes
+// Desktop uses absolute positioning, so no responsive classes needed
+
+/**
+ * Helper function to get grid column style for FormBuilder
+ * Uses desktop value for absolute positioning
+ */
+const getGridColumnStyleForBuilder = (columnSpan, gridColumn = 1) => {
+  const span = typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : (columnSpan || 4)
+  return `${gridColumn} / span ${span}`
+}
+
 const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const formToEdit = form || initialData
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  // Detect desktop screen size
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024)
+    checkDesktop()
+    window.addEventListener('resize', checkDesktop)
+    return () => window.removeEventListener('resize', checkDesktop)
+  }, [])
   
   const createFirstPage = (pageTitle = '', pageDescription = '') => ({
     id: uuidv4(),
@@ -1319,7 +1489,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             type: 'text',
             required: true,
             placeholder: 'Enter title',
-            columnSpan: 4,
+            columnSpan: { mobile: 12, tablet: 6, desktop: 4 },
             gridRow: 1,
             gridColumn: 1,
             validation: { required: true, message: 'Title is required' }
@@ -1332,7 +1502,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             required: false,
             placeholder: 'Enter description',
             rows: 3,
-            columnSpan: 4,
+            columnSpan: { mobile: 12, tablet: 12, desktop: 8 },
             gridRow: 1,
             gridColumn: 5
           }
@@ -1799,7 +1969,9 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           fields: []
         }]
       }] : undefined,
-      columnSpan: (fieldType === 'section' || fieldType === 'tab') ? 12 : 4, // Full width for sections and tabs
+      columnSpan: (fieldType === 'section' || fieldType === 'tab')
+        ? { mobile: 12, tablet: 12, desktop: 12 } // Full width for sections and tabs
+        : { mobile: 12, tablet: 6, desktop: 4 }, // Responsive for regular fields
       gridRow: nextRow, // Explicit row position
       gridColumn: nextCol, // Explicit column start (1-12)
       validation: {}
@@ -2039,7 +2211,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     const field = currentFields[fieldIndex]
     const fieldRow = field.gridRow || 1
     const fieldCol = field.gridColumn || 1
-    const oldSpan = field.columnSpan || 4
+    const oldSpan = typeof field.columnSpan === 'object' ? (field.columnSpan.desktop || 4) : (field.columnSpan || 4)
     
     let newFieldCol = fieldCol
     let adjustedSpan = newSpan
@@ -2066,10 +2238,14 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     
     let updatedFields = [...container.fields]
     
-    // Update the field's span and column
-    updatedFields[fieldIndex] = { 
-      ...field, 
-      columnSpan: adjustedSpan,
+    // Update the field's span and column - handle responsive column spans
+    const updatedColumnSpan = typeof field.columnSpan === 'object'
+      ? { ...field.columnSpan, desktop: adjustedSpan }
+      : adjustedSpan
+
+    updatedFields[fieldIndex] = {
+      ...field,
+      columnSpan: updatedColumnSpan,
       gridColumn: newFieldCol
     }
     
@@ -3516,7 +3692,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const currentPage = formData.pages[currentPageIndex]
 
   return (
-    <div className="h-full">
+    <div className="h-full w-full" data-form-builder="true">
       <style dangerouslySetInnerHTML={{ __html: hoverStyles }} />
       <DndContext
         sensors={sensors}
@@ -3527,93 +3703,94 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       >
         <div className="flex gap-6 h-full">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="flex-1 min-w-0 p-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           <form onSubmit={handleSubmit} id="form-builder-form">
-          {/* Hidden submit button for external trigger */}
-          <button type="submit" id="form-builder-submit" className="hidden" />
-          <button type="button" id="form-builder-publish" onClick={handleSaveAndPublish} className="hidden" />
-          
-          {/* Page Tabs */}
-          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-end gap-2 overflow-x-auto -mb-px">
-                  {formData.pages.map((page, index) => (
-                    <div 
-                      key={page.id} 
-                      className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
-                        currentPageIndex === index
-                          ? 'border-primary-600'
-                          : 'border-transparent'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCurrentPageIndex(index)
-                          // Cancel adding field when switching pages
-                          if (addingFieldTo) {
-                            setAddingFieldTo(null)
-                          }
-                        }}
-                        className={`text-sm font-medium transition-colors whitespace-nowrap ${
+            {/* Hidden submit button for external trigger */}
+            <button type="submit" id="form-builder-submit" className="hidden" />
+            <button type="button" id="form-builder-publish" onClick={handleSaveAndPublish} className="hidden" />
+
+            {/* Page Tabs */}
+            <div className="flex-shrink-0 mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex-1 min-w-0 border-b border-gray-200 dark:border-gray-700" style={{ maxWidth: 'calc(100vw - 100px)' }}>
+                  <div className="flex flex-nowrap items-end gap-1 sm:gap-2 overflow-x-auto overflow-y-hidden -mb-px pb-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}>
+                    {formData.pages.map((page, index) => (
+                      <div
+                        key={page.id}
+                        className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 border-b-2 transition-colors flex-shrink-0 min-w-fit ${
                           currentPageIndex === index
-                            ? 'text-primary-600'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'border-primary-600'
+                            : 'border-transparent'
                         }`}
                       >
-                        {page.title}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleOpenTabConfig(index)
-                        }}
-                        className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                        title="Tab settings"
-                      >
-                        <FiSettings size={14} />
-                      </button>
-                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentPageIndex(index)
+                            // Cancel adding field when switching pages
+                            if (addingFieldTo) {
+                              setAddingFieldTo(null)
+                            }
+                          }}
+                          className={`text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-w-[60px] ${
+                            currentPageIndex === index
+                              ? 'text-primary-600'
+                              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                          }`}
+                          style={{ minWidth: '60px' }}
+                        >
+                          {page.title}
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleDeletePage(index)
+                            handleOpenTabConfig(index)
                           }}
-                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete tab"
+                          className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                          title="Tab settings"
                         >
-                          <FiTrash2 size={14} />
+                          <FiSettings size={14} />
                         </button>
-                      )}
-                    </div>
-                  ))}
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeletePage(index)
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete page"
+                          >
+                            <FiX className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                <Button type="button" size="sm" onClick={handleAddPage} className="flex-shrink-0">
+                  <FiPlus className="mr-1" /> Add Tab
+                </Button>
               </div>
-              
-              <Button type="button" size="sm" onClick={handleAddPage} className="flex-shrink-0">
-                <FiPlus className="mr-1" /> Add Tab
-              </Button>
             </div>
-          </div>
 
-        {/* Current Page Content */}
-        {currentPage && (
-          <Card className="mb-4">
-            {/* Sections with Drag & Drop */}
-            <SortableContext
-              items={currentPage.sections.map((s, i) => `section-${currentPageIndex}-${i}`)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-4">
-                {currentPage.sections.map((section, sectionIndex) => (
-                  <div 
-                    key={section.id} 
-                    ref={el => sectionRefs.current[section.id] = el}
-                    data-section-id={section.id}
+            {/* Current Page Content - Scrollable */}
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+              {currentPage && (
+                <Card className="mb-4">
+                  {/* Sections with Drag & Drop */}
+                  <SortableContext
+                    items={currentPage.sections.map((s, i) => `section-${currentPageIndex}-${i}`)}
+                    strategy={verticalListSortingStrategy}
                   >
+                    <div className="space-y-4">
+                  {currentPage.sections.map((section, sectionIndex) => (
+                    <div
+                      key={section.id}
+                      ref={el => sectionRefs.current[section.id] = el}
+                      data-section-id={section.id}
+                    >
                     <SortableSection
                       id={`section-${currentPageIndex}-${sectionIndex}`}
                       section={section}
@@ -3639,6 +3816,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                                         pageIndex={currentPageIndex}
                                         sectionIndex={sectionIndex}
                         fieldPath={[]}
+                        isDesktop={isDesktop}
                                         renderFieldPreview={renderFieldPreview}
                         onStartAddingField={handleStartAddingField}
                         onOpenFieldConfig={handleOpenFieldConfig}
@@ -3666,9 +3844,10 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
             >
               <FiPlus className="mr-1" /> Add Section
             </Button>
-          </Card>
-        )}
-        </form>
+                </Card>
+              )}
+            </div>
+          </form>
       </div>
 
       {/* Mobile: Floating button to open right sidebar */}

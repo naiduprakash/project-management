@@ -5,12 +5,27 @@ import { FiX, FiPlus, FiTrash2 } from 'react-icons/fi'
 import Button from '@/components/common/Button'
 import Input from '@/components/common/Input'
 
+// Helper function to detect mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
 /**
  * Field Configuration Panel - Slide-out panel for editing field, section, or page properties
  */
 const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChange }) => {
   const [config, setConfig] = useState(field)
   const [isDirty, setIsDirty] = useState(false)
+  const isMobile = useIsMobile()
 
   // For backward compatibility
   const isSection = type === 'section'
@@ -79,8 +94,33 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
   // Check if there are unsaved changes before switching fields
   const hasUnsavedChanges = () => isDirty
 
+  // Lock body scroll when mobile panel is open
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [isMobile])
+
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto">
+    <>
+      {/* Mobile: Backdrop overlay */}
+      {isMobile && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={onClose}
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
+
+      {/* Panel */}
+      <div className={`bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto ${
+        isMobile
+          ? 'fixed inset-y-0 right-0 w-full max-w-sm'
+          : 'fixed inset-y-0 right-0 w-96'
+      }`}>
       {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
         <div>
@@ -356,10 +396,10 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 </label>
               </div>
               
-              {/* Mobile Width (< 640px) */}
+              {/* Mobile Width (< 768px) */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  📱 Mobile (Default: Full Width)
+                  📱 Mobile (&lt; 768px)
                 </label>
                 <select
                   value={typeof config.columnSpan === 'object' ? (config.columnSpan.mobile || 12) : 12}
@@ -380,10 +420,10 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
                 </select>
               </div>
 
-              {/* Tablet Width (640px - 1024px) */}
+              {/* Tablet Width (768px - 1024px) */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  📱 Tablet
+                  📱 Tablet (768px - 1024px)
                 </label>
                 <select
                   value={typeof config.columnSpan === 'object' ? (config.columnSpan.tablet || 6) : (config.columnSpan || 12)}
@@ -408,7 +448,7 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               {/* Desktop Width (>= 1024px) */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  🖥️ Desktop
+                  🖥️ Desktop (&ge; 1024px)
                 </label>
                 <select
                   value={typeof config.columnSpan === 'object' ? (config.columnSpan.desktop || 4) : (config.columnSpan || 12)}
@@ -432,7 +472,7 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
               </div>
 
               <p className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-2">
-                💡 <strong>Tip:</strong> Mobile defaults to full width (12/12) for better readability. Adjust tablet and desktop widths to create responsive layouts.
+                💡 <strong>Tip:</strong> Mobile (&lt; 768px) defaults to full width for better readability. Adjust tablet (768px+) and desktop (1024px+) widths to create responsive layouts.
               </p>
             </div>
 
@@ -1018,7 +1058,8 @@ const FieldConfigPanel = ({ field, onSave, onClose, type = 'field', onConfigChan
           {isDirty ? 'Save Changes *' : 'Save Changes'}
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

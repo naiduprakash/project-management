@@ -13,7 +13,7 @@ import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
 import api from '@/lib/api'
-import { FiEdit, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi'
+import { FiEdit, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi'
 import Link from 'next/link'
 
 export default function AdminPagesPage() {
@@ -97,6 +97,7 @@ export default function AdminPagesPage() {
       error(err.response?.data?.error || 'Operation failed')
     }
   }
+
 
   const handleDelete = async (pageId, pageTitle) => {
     if (!confirm(`Are you sure you want to delete "${pageTitle}"? This will also delete all associated forms.`)) {
@@ -218,8 +219,16 @@ export default function AdminPagesPage() {
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => handleOpenModal(page)}
+                    title="Edit Page Details"
+                  >
+                    <FiEdit2 />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => router.push(`/admin/pages/${page.id}/edit`)}
-                    title="Edit Page & Forms"
+                    title="Edit Page Forms"
                   >
                     <FiEdit />
                   </Button>

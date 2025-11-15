@@ -73,25 +73,32 @@ const getResponsiveColSpan = (columnSpan) => {
     const span = columnSpan || 12
     return `col-span-${span}`
   }
-  
+
   // New format: { mobile: 12, tablet: 6, desktop: 4 }
   const mobile = columnSpan.mobile || 12
   const tablet = columnSpan.tablet || 6
   const desktop = columnSpan.desktop || 4
-  
-  // Use Tailwind responsive classes
+
+  // Use Tailwind responsive classes for responsive layout
   // Base (mobile): col-span-X
-  // sm (>= 640px): sm:col-span-X
-  // lg (>= 1024px): lg:col-span-X
-  return `col-span-${mobile} sm:col-span-${tablet} lg:col-span-${desktop}`
+  // md (>= 768px, tablet): md:col-span-X
+  // lg (>= 1024px, desktop and up): lg:col-span-X
+  return `col-span-${mobile} md:col-span-${tablet} lg:col-span-${desktop}`
 }
 
 /**
  * Helper function to get grid column style for absolute positioning
- * Falls back to desktop value for inline styles
+ * For responsive column spans, returns null to let CSS classes handle it
  */
 const getGridColumnStyle = (columnSpan, gridColumn = 1) => {
-  const span = typeof columnSpan === 'object' ? (columnSpan.desktop || 4) : (columnSpan || 12)
+  // If responsive column span is used, don't use inline styles
+  // The responsive Tailwind classes will handle the layout
+  if (typeof columnSpan === 'object') {
+    return undefined // Let the responsive classes handle it
+  }
+
+  // For backward compatibility with numeric columnSpan
+  const span = columnSpan || 12
   return `${gridColumn} / span ${span}`
 }
 
@@ -374,6 +381,7 @@ const DynamicFormRenderer = ({
             type={field.type}
             name={field.name}
             value={value || ''}
+            fullWidth={false}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
@@ -391,6 +399,7 @@ const DynamicFormRenderer = ({
             type="number"
             name={field.name}
             value={value || ''}
+            fullWidth={false}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
@@ -408,6 +417,7 @@ const DynamicFormRenderer = ({
             type="date"
             name={field.name}
             value={value || ''}
+            fullWidth={false}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             error={error}
             required={field.validation?.required}
@@ -421,7 +431,7 @@ const DynamicFormRenderer = ({
         return (
           <div className="flex flex-col gap-1">
             {field.showLabel !== false && (
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-base sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -434,15 +444,15 @@ const DynamicFormRenderer = ({
               rows={field.rows || 4}
               disabled={isDisabled}
               autoComplete="off"
-              className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
-                error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
-              } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+              className={`px-4 py-3 sm:px-3 sm:py-2.5 text-base sm:text-sm min-h-[88px] sm:min-h-[80px] border rounded-lg sm:rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all ${
+                error ? 'border-red-400 focus:ring-red-400 focus:border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+              } ${isDisabled ? 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-600' : ''}`}
             />
             {field.hint && !error && (
-              <p className="text-xs text-gray-500">{field.hint}</p>
+              <p className="text-sm sm:text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
             )}
             {error && (
-              <p className="text-xs text-red-500">{error}</p>
+              <p className="text-sm sm:text-xs text-red-500 dark:text-red-400">{error}</p>
             )}
           </div>
         )
@@ -451,7 +461,7 @@ const DynamicFormRenderer = ({
         return (
           <div className="flex flex-col gap-1">
             {field.showLabel !== false && (
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-base sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -463,9 +473,9 @@ const DynamicFormRenderer = ({
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 disabled={isDisabled}
-                className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
-                  error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
-                } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                className={`px-4 py-3 sm:px-3 sm:py-2.5 text-base sm:text-sm min-h-[44px] sm:min-h-[36px] border rounded-lg sm:rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all ${
+                  error ? 'border-red-400 focus:ring-red-400 focus:border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                } ${isDisabled ? 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-600' : ''}`}
               >
                 <option value="">Select {field.label}</option>
                 {field.options?.map(option => (
@@ -485,9 +495,9 @@ const DynamicFormRenderer = ({
                 }}
                 multiple
                 disabled={isDisabled}
-                className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
-                  error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
-                } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                className={`px-4 py-3 sm:px-3 sm:py-2.5 text-base sm:text-sm min-h-[88px] sm:min-h-[80px] border rounded-lg sm:rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all ${
+                  error ? 'border-red-400 focus:ring-red-400 focus:border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                } ${isDisabled ? 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-600' : ''}`}
               >
                 {field.options?.map(option => (
                   <option key={option.value} value={option.value}>
@@ -502,9 +512,9 @@ const DynamicFormRenderer = ({
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                 disabled={isDisabled}
-                className={`px-3 py-2.5 border rounded-md bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all ${
-                  error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300'
-                } ${isDisabled ? 'bg-gray-100 text-gray-500' : ''}`}
+                className={`px-4 py-3 sm:px-3 sm:py-2.5 text-base sm:text-sm min-h-[44px] sm:min-h-[36px] border rounded-lg sm:rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-all ${
+                  error ? 'border-red-400 focus:ring-red-400 focus:border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                } ${isDisabled ? 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-600' : ''}`}
               >
                 <option value="">Select {field.label}</option>
                 {field.options?.map(option => (
@@ -515,10 +525,10 @@ const DynamicFormRenderer = ({
               </select>
             )}
             {field.hint && !error && (
-              <p className="text-xs text-gray-500">{field.hint}</p>
+              <p className="text-sm sm:text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
             )}
             {error && (
-              <p className="text-xs text-red-500">{error}</p>
+              <p className="text-sm sm:text-xs text-red-500 dark:text-red-400">{error}</p>
             )}
           </div>
         )
@@ -649,7 +659,7 @@ const DynamicFormRenderer = ({
         return (
           <div className="flex flex-col gap-1">
             {field.showLabel !== false && (
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-base sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -698,10 +708,10 @@ const DynamicFormRenderer = ({
               })}
             </div>
             {field.hint && !error && (
-              <p className="text-xs text-gray-500">{field.hint}</p>
+              <p className="text-sm sm:text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
             )}
             {error && (
-              <p className="text-xs text-red-500">{error}</p>
+              <p className="text-sm sm:text-xs text-red-500 dark:text-red-400">{error}</p>
             )}
           </div>
         )
@@ -814,7 +824,7 @@ const DynamicFormRenderer = ({
         return (
           <div className="flex flex-col gap-1">
             {field.showLabel !== false && (
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-base sm:text-sm font-medium text-gray-700 dark:text-gray-300">
               {field.label}
               {field.validation?.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -854,10 +864,10 @@ const DynamicFormRenderer = ({
               })}
             </div>
             {field.hint && !error && (
-              <p className="text-xs text-gray-500">{field.hint}</p>
+              <p className="text-sm sm:text-xs text-gray-500 dark:text-gray-400">{field.hint}</p>
             )}
             {error && (
-              <p className="text-xs text-red-500">{error}</p>
+              <p className="text-sm sm:text-xs text-red-500 dark:text-red-400">{error}</p>
             )}
           </div>
         )
@@ -1101,8 +1111,12 @@ const DynamicFormRenderer = ({
                         key={`${field.name}-${rowIndex}`}
                         className={getResponsiveColSpan(columnSpan)}
                         style={{
-                          gridColumn: getGridColumnStyle(columnSpan, gridColumn),
-                          gridRow: gridRow
+                          // Only apply grid positioning for non-responsive fields
+                          ...(typeof columnSpan !== 'object' && getGridColumnStyle(columnSpan, gridColumn) && {
+                            gridColumn: getGridColumnStyle(columnSpan, gridColumn)
+                          }),
+                          // Only apply gridRow for non-responsive fields
+                          ...(typeof columnSpan !== 'object' && { gridRow: gridRow })
                         }}
                       >
                         {field.type === 'section' || field.type === 'tab' ? (
@@ -1188,8 +1202,12 @@ const DynamicFormRenderer = ({
                   key={field.name}
                   className={getResponsiveColSpan(columnSpan)}
                   style={{
-                    gridColumn: getGridColumnStyle(columnSpan, gridColumn),
-                    gridRow: gridRow
+                    // Only apply grid positioning for non-responsive fields
+                    ...(typeof columnSpan !== 'object' && getGridColumnStyle(columnSpan, gridColumn) && {
+                      gridColumn: getGridColumnStyle(columnSpan, gridColumn)
+                    }),
+                    // Only apply gridRow for non-responsive fields
+                    ...(typeof columnSpan !== 'object' && { gridRow: gridRow })
                   }}
                 >
                   {isNested ? (

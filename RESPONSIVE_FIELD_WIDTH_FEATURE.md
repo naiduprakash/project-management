@@ -99,13 +99,18 @@ Hover over the width indicator to see detailed breakpoint information.
 
 2. **`DynamicFormRenderer.js`**
    - Added `getResponsiveColSpan()` helper function
-   - Added `getGridColumnStyle()` helper function
-   - Updated field rendering to use responsive Tailwind classes
-   - Maintains backward compatibility
+   - Added `getGridColumnStyle()` helper function with responsive logic
+   - Updated field rendering to conditionally apply `gridColumn` styles
+   - For responsive fields: uses Tailwind classes, skips inline styles
+   - For legacy fields: uses inline styles for backward compatibility
 
 3. **`FormBuilder.js`**
    - Updated field label to show responsive widths
    - Tooltip shows detailed breakdown of column spans
+
+4. **`tailwind.config.js`**
+   - Added safelist patterns for responsive column span classes
+   - Ensures dynamic classes are included in production build
 
 ### Helper Functions
 
@@ -359,6 +364,27 @@ columnSpan: {
 - No layout shift or reflow
 - Tailwind purges unused classes
 - Responsive classes are GPU-accelerated
+
+## Troubleshooting
+
+### Issue: Fields not responsive despite config
+
+**Symptoms:**
+- Field config panel shows responsive widths
+- FormBuilder preview shows correct widths
+- FormRenderer shows fields at fixed widths
+
+**Root Cause:**
+Inline `gridColumn` styles were overriding responsive Tailwind classes.
+
+**Solution Applied:**
+- Modified `getGridColumnStyle()` to return `undefined` for responsive fields
+- Updated rendering to conditionally apply `gridColumn` styles
+- Added Tailwind safelist to ensure classes are built
+
+**Result:**
+✅ Responsive fields now use Tailwind classes exclusively
+✅ Legacy fields continue using inline styles for compatibility
 
 ## Browser Support
 

@@ -22,7 +22,8 @@ const DataTable = ({
   renderCard,
   defaultView = 'list', // 'list' or 'grid'
   gridCols = 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-  enableViewToggle = true // Allow users to toggle between views
+  enableViewToggle = true, // Allow users to toggle between views
+  customActions // Custom actions to render beside filters
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -147,7 +148,7 @@ const DataTable = ({
             <div className="flex items-center gap-2">
               {/* Add New Button */}
               {onAdd && (
-                <Button onClick={onAdd}>
+                <Button size="sm" onClick={onAdd}>
                   <FiPlus className="mr-2" />
                   {addButtonText}
                 </Button>
@@ -185,6 +186,7 @@ const DataTable = ({
               {filters.length > 0 && (
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => setShowFilters(!showFilters)}
                 >
                   <FiFilter className="mr-2" />
@@ -196,6 +198,9 @@ const DataTable = ({
                   )}
                 </Button>
               )}
+
+              {/* Custom Actions */}
+              {customActions}
             </div>
           </div>
 
