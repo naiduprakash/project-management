@@ -130,9 +130,9 @@ const DataTable = ({
       {/* Search and Filters */}
       <Card>
         <div className="space-y-4">
-          <div className="flex flex-col gap-4 sm:gap-2">
-            {/* Search - Full width on mobile */}
-            <div className="w-full sm:max-w-md">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-2">
+            {/* Search - Full width on mobile, then flexible width on sm and up */}
+            <div className="w-full sm:flex-grow sm:max-w-xs md:max-w-sm lg:max-w-md">
               <div className="relative">
                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
@@ -145,10 +145,10 @@ const DataTable = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3 mt-4 sm:mt-0">
               {/* Add New Button */}
               {onAdd && (
-                <Button size="sm" onClick={onAdd} className="flex-1 sm:flex-none min-h-[44px] sm:min-h-[32px]">
+                <Button size="sm" onClick={onAdd} className="min-h-[44px] sm:min-h-[32px] flex-grow sm:flex-grow-0">
                   <FiPlus className="mr-2" />
                   <span className="hidden xs:inline">{addButtonText}</span>
                 </Button>
@@ -156,10 +156,10 @@ const DataTable = ({
               
               {/* View Toggle */}
               {enableViewToggle && renderCard && columns.length > 0 && (
-                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
+                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md flex-grow sm:flex-grow-0">
                   <button
                     onClick={() => setCurrentView('list')}
-                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-l-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center ${
+                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-l-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center flex-1 ${
                       currentView === 'list'
                         ? 'bg-primary-600 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -170,7 +170,7 @@ const DataTable = ({
                   </button>
                   <button
                     onClick={() => setCurrentView('grid')}
-                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-r-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center ${
+                    className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-r-md transition-colors min-h-[44px] sm:min-h-[32px] flex items-center justify-center flex-1 ${
                       currentView === 'grid'
                         ? 'bg-primary-600 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -188,7 +188,7 @@ const DataTable = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className="min-h-[44px] sm:min-h-[32px]"
+                  className="min-h-[44px] sm:min-h-[32px] flex-grow sm:flex-grow-0"
                 >
                   <FiFilter className="mr-2" />
                   <span className="hidden xs:inline">Filters</span>
@@ -417,4 +417,3 @@ const DataTable = ({
 }
 
 export default DataTable
-
