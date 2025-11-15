@@ -15,6 +15,7 @@ import Input from '@/components/common/Input'
 import api from '@/lib/api'
 import { FiEdit, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi'
 import Link from 'next/link'
+import ActionButton from '@/components/common/ActionButton'
 
 export default function AdminPagesPage() {
   const router = useRouter()
@@ -208,39 +209,35 @@ export default function AdminPagesPage() {
               noWrap: true,
               render: (page) => (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  <ActionButton
+                    fullText={page.published ? 'Unpublish' : 'Publish'}
+                    shortText={page.published ? 'Unpub' : 'Pub'}
+                    icon={page.published ? <FiEyeOff /> : <FiEye />}
                     onClick={() => handleTogglePublish(page)}
-                    title={page.published ? 'Unpublish' : 'Publish'}
-                  >
-                    {page.published ? <FiEyeOff /> : <FiEye />}
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="ghost"
+                  />
+                  <ActionButton
+                    fullText="Edit Details"
+                    shortText="Edit"
+                    icon={<FiEdit2 />}
                     onClick={() => handleOpenModal(page)}
-                    title="Edit Page Details"
-                  >
-                    <FiEdit2 />
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="ghost"
+                  />
+                  <ActionButton
+                    fullText="Edit Forms"
+                    shortText="Forms"
+                    icon={<FiEdit />}
                     onClick={() => router.push(`/admin/pages/${page.id}/edit`)}
-                    title="Edit Page Forms"
-                  >
-                    <FiEdit />
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="ghost"
+                  />
+                  <ActionButton
+                    fullText="Delete"
+                    shortText="Del"
+                    icon={<FiTrash2 />}
                     onClick={() => handleDelete(page.id, page.title)}
-                    title="Delete"
+                    variant="ghost"
                     className="text-red-600 hover:bg-red-50"
-                  >
-                    <FiTrash2 />
-                  </Button>
+                  />
                 </div>
               )
             }

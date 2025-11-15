@@ -156,7 +156,7 @@ export default function EditPagePage() {
         
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full px-4 sm:px-6 lg:px-8 py-8">
+          <div className="h-full px-0 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
             {/* Form Builder (Always Shown) */}
             <FormBuilder
               form={editingForm}

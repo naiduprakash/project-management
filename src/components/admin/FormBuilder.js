@@ -874,9 +874,9 @@ const NestedSectionWrapper = ({
   const isRepeater = field.sectionType === 'repeater'
 
   return (
-    <Card className="border-2 border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-900/10 relative hover-parent">
+    <Card className="border-2 border-primary-300 dark:border-primary-700 bg-primary-50/30 dark:bg-primary-900/10 relative hover-parent p-3 sm:p-4" padding={false}>
       {/* Nested Section Header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -1093,9 +1093,9 @@ const NestedTabsWrapper = ({
   }, [pages.length, activeTab])
 
   return (
-    <Card className="border-2 border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10 relative hover-parent">
+    <Card className="border-2 border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-900/10 relative hover-parent p-3 sm:p-4" padding={false}>
       {/* Nested Tabs Header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -1228,9 +1228,9 @@ const NestedTabsWrapper = ({
               if (!section) return null
               const isCollapsed = collapsedSections[`${activeTab}-${secIdx}`]
               return (
-                <Card key={section.id || secIdx} className="border-2 border-gray-200 dark:border-gray-700" padding={true}>
+                <Card key={section.id || secIdx} className="border-2 border-gray-200 dark:border-gray-700 p-3 sm:p-4" padding={false}>
                   {/* Section Header */}
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-3">
                     <button
                       type="button"
                       onClick={() => setCollapsedSections(prev => ({
@@ -3598,7 +3598,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       >
         <div className="flex gap-6 h-full">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 p-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="flex-1 min-w-0 p-3 sm:p-4 md:p-6" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           <form onSubmit={handleSubmit} id="form-builder-form">
             {/* Hidden submit button for external trigger */}
             <button type="submit" id="form-builder-submit" className="hidden" />

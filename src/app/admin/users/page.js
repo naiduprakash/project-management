@@ -15,6 +15,7 @@ import Input from '@/components/common/Input'
 import Avatar from '@/components/common/Avatar'
 import api from '@/lib/api'
 import { FiEdit, FiTrash2, FiPlus } from 'react-icons/fi'
+import ActionButton from '@/components/common/ActionButton'
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -204,24 +205,22 @@ export default function AdminUsersPage() {
               noWrap: true,
               render: (usr) => (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  <ActionButton
+                    fullText="Edit"
+                    shortText="✎"
+                    icon={<FiEdit />}
                     onClick={() => handleOpenModal(usr)}
-                    title="Edit"
-                  >
-                    <FiEdit />
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="ghost"
+                  />
+                  <ActionButton
+                    fullText="Delete"
+                    shortText="✕"
+                    icon={<FiTrash2 />}
                     onClick={() => handleDelete(usr.id, usr.name)}
                     disabled={usr.id === user.id}
-                    title="Delete"
+                    variant="ghost"
                     className={usr.id === user.id ? '' : 'text-red-600 hover:bg-red-50'}
-                  >
-                    <FiTrash2 />
-                  </Button>
+                  />
                 </div>
               )
             }

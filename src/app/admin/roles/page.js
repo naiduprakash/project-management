@@ -14,6 +14,7 @@ import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
 import api from '@/lib/api'
 import { FiEdit, FiTrash2, FiShield, FiPlus } from 'react-icons/fi'
+import ActionButton from '@/components/common/ActionButton'
 
 export default function AdminRolesPage() {
   const router = useRouter()
@@ -213,24 +214,22 @@ export default function AdminRolesPage() {
               noWrap: true,
               render: (role) => (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  <ActionButton
+                    fullText="Edit"
+                    shortText="✎"
+                    icon={<FiEdit />}
                     onClick={() => handleOpenModal(role)}
-                    title="Edit"
-                  >
-                    <FiEdit />
-                  </Button>
-                  <Button
-                    size="sm"
                     variant="ghost"
+                  />
+                  <ActionButton
+                    fullText="Delete"
+                    shortText="✕"
+                    icon={<FiTrash2 />}
                     onClick={() => handleDelete(role.id, role.displayName)}
                     disabled={role.isDefault}
-                    title="Delete"
+                    variant="ghost"
                     className={role.isDefault ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}
-                  >
-                    <FiTrash2 />
-                  </Button>
+                  />
                 </div>
               )
             }
