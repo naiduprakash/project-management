@@ -177,7 +177,7 @@ export default function ProjectViewPage() {
         <Card>
           <h2 className="text-xl font-bold text-gray-900 mb-6">Project Details</h2>
           
-          {project.form?.sections.map((section, sectionIndex) => (
+          {(project.form?.sections || []).map((section, sectionIndex) => (
             <div key={section.id || sectionIndex} className="mb-8 last:mb-0">
               <div className="mb-4 pb-2 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
@@ -187,7 +187,7 @@ export default function ProjectViewPage() {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {section.fields.map((field, fieldIndex) => {
+                {(section.fields || []).map((field, fieldIndex) => {
                   // Check dependency
                   if (field.dependsOn) {
                     const dependentValue = project.data[field.dependsOn.field]

@@ -56,7 +56,11 @@ export const getGridColumnStyle = (columnSpan, gridColumn = 1) => {
  * @returns {array} Fields with calculated gridRow and gridColumn
  */
 export const calculateGridPositions = (fields) => {
+  if (!fields || !Array.isArray(fields)) return []
+  
   return fields.map((field, idx) => {
+    if (!field) return field
+    
     // If field already has grid positioning, keep it
     if (field.gridRow && field.gridColumn) {
       return field
@@ -70,6 +74,8 @@ export const calculateGridPositions = (fields) => {
     // Calculate position based on previous fields
     for (let i = 0; i < idx; i++) {
       const prevField = fields[i]
+      if (!prevField) continue
+      
       const prevSpan = typeof prevField.columnSpan === 'object'
         ? (prevField.columnSpan.desktop || 4)
         : (prevField.columnSpan || 4)
@@ -112,13 +118,14 @@ export const calculateGridPositions = (fields) => {
  * @returns {object} CSS style object for grid container
  */
 export const getGridContainerStyle = (fields) => {
-  if (fields.length === 0) {
+  if (!fields || !Array.isArray(fields) || fields.length === 0) {
     return { display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '0.75rem' }
   }
 
-  const maxRow = fields.reduce((max, field) =>
-    Math.max(max, field.gridRow || 1), 0
-  ) || 1
+  const maxRow = fields.reduce((max, field) => {
+    if (!field) return max
+    return Math.max(max, field.gridRow || 1)
+  }, 0) || 1
 
   return {
     display: 'grid',
@@ -137,12 +144,15 @@ export const getGridContainerStyle = (fields) => {
  * @returns {array} Pages with migrated field grid positioning
  */
 export const migrateFieldsToGrid = (pages) => {
-  return pages.map(page => ({
+  return (pages || []).map(page => ({
     ...page,
-    sections: page.sections.map(section => ({
-      ...section,
-      fields: calculateGridPositions(section.fields || [])
-    }))
+    sections: (page?.sections || []).map(section => {
+      if (!section) return section
+      return {
+        ...section,
+        fields: calculateGridPositions(section.fields || [])
+      }
+    })
   }))
 }
 
@@ -153,7 +163,9 @@ export const migrateFieldsToGrid = (pages) => {
  * @returns {array} Sorted fields by gridRow then gridColumn
  */
 export const sortFieldsByGridPosition = (fields) => {
+  if (!fields || !Array.isArray(fields)) return []
   return [...fields].sort((a, b) => {
+    if (!a || !b) return 0
     const aRow = a.gridRow || 1
     const bRow = b.gridRow || 1
     const aCol = a.gridColumn || 1
@@ -172,12 +184,16 @@ export const sortFieldsByGridPosition = (fields) => {
  * @returns {object} {row, col} for the new field's position
  */
 export const getNextGridPosition = (fields, fieldType = 'text') => {
-  if (fields.length === 0) {
+  if (!fields || !Array.isArray(fields) || fields.length === 0) {
     return { row: 1, col: 1 }
   }
 
   // Find the last field
   const lastField = fields[fields.length - 1]
+  if (!lastField) {
+    return { row: 1, col: 1 }
+  }
+
   const lastRow = lastField.gridRow || 1
   const lastCol = lastField.gridColumn || 1
   const lastSpan = typeof lastField.columnSpan === 'object'
@@ -210,7 +226,13 @@ export const validateGridPositions = (fields) => {
   const errors = []
   const occupied = new Set()
 
+  if (!fields || !Array.isArray(fields)) {
+    return { isValid: true, errors: [] }
+  }
+
   fields.forEach((field, idx) => {
+    if (!field) return
+    
     const row = field.gridRow || 1
     const col = field.gridColumn || 1
     const span = typeof field.columnSpan === 'object'

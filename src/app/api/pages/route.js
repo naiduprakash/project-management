@@ -76,50 +76,10 @@ export async function POST(request) {
         createdBy: user.id
       });
 
-      // Create default form with basic fields
-      const defaultForm = await dal.create('forms', {
-        pageId: page.id,
-        title: `${title} Form`,
-        description: `Default form for ${title} page`,
-        sections: [
-          {
-            id: 'default-section',
-            title: 'Basic Information',
-            type: 'section',
-            fields: [
-              {
-                id: 'entry-title',
-                type: 'text',
-                label: 'Entry Title',
-                name: 'title',
-                required: true,
-                placeholder: 'Enter a title for this entry',
-                columnSpan: { mobile: 12, tablet: 12, desktop: 12 }
-              },
-              {
-                id: 'entry-description',
-                type: 'textarea',
-                label: 'Entry Description',
-                name: 'description',
-                required: false,
-                placeholder: 'Enter a description (optional)',
-                columnSpan: { mobile: 12, tablet: 12, desktop: 12 }
-              }
-            ]
-          }
-        ],
-        settings: {
-          multiPage: false,
-          showProgressBar: false,
-          allowSaveDraft: true
-        },
-        createdBy: user.id
-      });
-
       return NextResponse.json(
         {
           message: 'Page created successfully',
-          page: { ...page, forms: [defaultForm] }
+          page: { ...page, forms: [] }
         },
         { status: 201 }
       );

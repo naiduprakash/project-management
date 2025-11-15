@@ -1223,8 +1223,9 @@ const NestedTabsWrapper = ({
       {!isCollapsed && pages.length > 0 && (
         <div className="mt-3 space-y-4">
           {/* Sections in the active tab */}
-          {currentPage.sections && currentPage.sections.length > 0 ? (
+          {currentPage?.sections && currentPage.sections.length > 0 ? (
             currentPage.sections.map((section, secIdx) => {
+              if (!section) return null
               const isCollapsed = collapsedSections[`${activeTab}-${secIdx}`]
               return (
                 <Card key={section.id || secIdx} className="border-2 border-gray-200 dark:border-gray-700" padding={true}>
@@ -1477,39 +1478,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   const createFirstPage = (pageTitle = '', pageDescription = '') => ({
     id: uuidv4(),
     title: 'Tab 1',
-    sections: [
-      {
-        id: uuidv4(),
-        title: 'Entry Details',
-        description: 'Information for each entry',
-        fields: [
-          {
-            id: uuidv4(),
-            name: 'title',
-            label: 'Entry Title',
-            type: 'text',
-            required: true,
-            placeholder: 'Enter title',
-            columnSpan: { mobile: 12, tablet: 6, desktop: 4 },
-            gridRow: 1,
-            gridColumn: 1,
-            validation: { required: true, message: 'Title is required' }
-          },
-          {
-            id: uuidv4(),
-            name: 'description',
-            label: 'Entry Description',
-            type: 'textarea',
-            required: false,
-            placeholder: 'Enter description',
-            rows: 3,
-            columnSpan: { mobile: 12, tablet: 12, desktop: 8 },
-            gridRow: 1,
-            gridColumn: 5
-          }
-        ]
-      }
-    ]
+    sections: []
   })
 
   const [formData, setFormData] = useState({
@@ -1557,22 +1526,22 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       // Convert old structure to new if needed
       if (formToEdit.sections && !formToEdit.pages) {
         // Old structure - convert to new
-        const firstPage = createFirstPage()
         const pages = formToEdit.settings?.multiPage
-          ? formToEdit.sections.map((section, index) => ({
+          ? (formToEdit.sections || []).filter(s => s).map((section, index) => ({
               id: section.id || uuidv4(),
               title: `Page ${index + 1}`,
               sections: [section]
             }))
           : [{
-              ...firstPage,
-              sections: [firstPage.sections[0], ...formToEdit.sections]
+              id: uuidv4(),
+              title: 'Tab 1',
+              sections: (formToEdit.sections || []).filter(s => s)
             }]
         
         setFormData({
           title: formToEdit.title || '',
           description: formToEdit.description || '',
-          pages: migrateFieldsToGrid(pages.length > 0 ? pages : [firstPage]),
+          pages: migrateFieldsToGrid(pages.length > 0 ? pages : [{ id: uuidv4(), title: 'Tab 1', sections: [] }]),
           published: formToEdit.published || false,
           settings: formToEdit.settings || {
             multiPage: false
@@ -1580,7 +1549,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
         })
       } else {
         // New structure
-        const pages = formToEdit.pages || [createFirstPage()]
+        const pages = formToEdit.pages || [{ id: uuidv4(), title: 'Tab 1', sections: [] }]
         setFormData({
           title: formToEdit.title || '',
           description: formToEdit.description || '',
@@ -1591,23 +1560,17 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           }
         })
       }
-      
-      // All sections expanded by default (collapsed state is empty)
-      const pages = formToEdit.pages || [createFirstPage()]
     } else {
       // New form
-      const firstPage = createFirstPage()
       setFormData({
         title: '',
         description: '',
-        pages: [firstPage],
+        pages: [{ id: uuidv4(), title: 'Tab 1', sections: [] }],
         published: false,
         settings: {
           multiPage: false
         }
       })
-      
-      // All sections expanded by default
     }
   }, [formToEdit])
 
@@ -1687,14 +1650,15 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleDeleteSection = (pageIndex, sectionIndex) => {
-    const section = formData.pages[pageIndex].sections[sectionIndex]
+    const section = formData.pages?.[pageIndex]?.sections?.[sectionIndex]
+    if (!section) return
     
     if (!confirm(`Delete section "${section.title}" and all its fields?`)) return
     
     const updatedPages = [...formData.pages]
     updatedPages[pageIndex] = {
       ...updatedPages[pageIndex],
-      sections: updatedPages[pageIndex].sections.filter((_, i) => i !== sectionIndex)
+      sections: (updatedPages[pageIndex].sections || []).filter((_, i) => i !== sectionIndex)
     }
     
     setFormData({ ...formData, pages: updatedPages })
@@ -1801,10 +1765,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   // Field Management  
   const handleAddField = (pageIndex, sectionIndex, fieldType = 'text', fieldPath = []) => {
     // Navigate to the target container using fieldPath
-    const section = formData.pages[pageIndex].sections[sectionIndex]
+    const section = formData.pages?.[pageIndex]?.sections?.[sectionIndex]
+    if (!section) return
     
     let targetContainer = section
-    let targetFields = section.fields
+    let targetFields = section.fields || []
     
     // Navigate through nested structure using fieldPath
     // fieldPath can contain numeric indices for fields and strings for nested structures
@@ -2289,7 +2254,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
   }
 
   const handleOpenSectionConfig = (pageIndex, sectionIndex) => {
-    const section = formData.pages[pageIndex].sections[sectionIndex]
+    const section = formData.pages?.[pageIndex]?.sections?.[sectionIndex]
+    if (!section) return
     
     // Check if already editing the same section
     const isSameConfig = editingConfig && 
@@ -2324,7 +2290,11 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
 
   const handleOpenFieldConfig = (pageIndex, sectionIndex, fieldIndex, fieldPath = []) => {
     // Navigate to the correct field using fieldPath
-    let container = formData.pages[pageIndex].sections[sectionIndex]
+    const page = formData.pages?.[pageIndex]
+    const section = page?.sections?.[sectionIndex]
+    if (!section) return
+    
+    let container = section
     let currentFields = container.fields || []
     
     for (let i = 0; i < fieldPath.length; i++) {
@@ -3280,11 +3250,15 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
 
   // Update section status based on field validation
   useEffect(() => {
+    if (!formData || !formData.pages) return
+    
     const newStatus = {}
     formData.pages.forEach(page => {
-      page.sections?.forEach(section => {
-        const hasFields = section.fields?.length > 0
-        const hasRequiredFields = section.fields?.some(f => f.required)
+      if (!page || !page.sections) return
+      page.sections.forEach(section => {
+        if (!section || !section.id) return
+        const hasFields = (section.fields || []).length > 0
+        const hasRequiredFields = (section.fields || []).some(f => f?.required)
         
         if (!hasFields) {
           newStatus[section.id] = 'empty'
@@ -3610,7 +3584,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     }
   }
 
-  const currentPage = formData.pages[currentPageIndex]
+  const currentPage = formData.pages?.[currentPageIndex] || { id: uuidv4(), title: 'Tab 1', sections: [] }
 
   return (
     <div className="h-full w-full" data-form-builder="true">
@@ -3702,11 +3676,13 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                 <Card className="mb-4">
                   {/* Sections with Drag & Drop */}
                   <SortableContext
-                    items={currentPage.sections.map((s, i) => `section-${currentPageIndex}-${i}`)}
+                    items={(currentPage.sections || []).filter(s => s).map((s, i) => `section-${currentPageIndex}-${i}`)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-4">
-                  {currentPage.sections.map((section, sectionIndex) => (
+                  {(currentPage.sections || []).filter(s => s).map((section, sectionIndex) => {
+                    if (!section || !section.id) return null
+                    return (
                     <div
                       key={section.id}
                       ref={el => sectionRefs.current[section.id] = el}
@@ -3753,7 +3729,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                       />
                     </SortableSection>
                   </div>
-                ))}
+                  )
+                  })}
               </div>
             </SortableContext>
 
@@ -3772,7 +3749,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       </div>
 
       {/* Mobile: Floating button to open right sidebar */}
-      {currentPage.sections && currentPage.sections.length > 1 && (
+      {currentPage?.sections && currentPage.sections.length > 1 && (
         <button
           onClick={() => setIsRightSidebarOpen(true)}
           className="md:hidden fixed bottom-6 right-6 z-30 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all"
@@ -3783,7 +3760,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       )}
 
       {/* Right Sidebar - Section Navigation */}
-      {currentPage.sections && currentPage.sections.length > 1 && (
+      {currentPage?.sections && currentPage.sections.length > 1 && (
         <RightResizableSidebar
           minWidth={200}
           maxWidth={400}
@@ -3803,7 +3780,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
                   </h3>
                   
                   <div className="space-y-2">
-                    {currentPage.sections?.map((section, index) => {
+                    {(currentPage.sections || []).filter(s => s && s.id).map((section, index) => {
                       const sectionId = section.id
                       const status = sectionStatus[sectionId] || 'empty'
                       const isActive = activeSectionId === sectionId

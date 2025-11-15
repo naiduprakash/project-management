@@ -324,8 +324,8 @@ export default function PageListingPage() {
               },
               // Add form field columns
               ...(page?.forms && page.forms.length > 0
-                ? page.forms[0].sections?.flatMap(section =>
-                    section.fields?.filter(field =>
+                ? (page.forms[0].sections || []).flatMap(section =>
+                    (section.fields || []).filter(field =>
                       field.name &&
                       field.name !== 'title' &&
                       visibleColumns[field.name]
@@ -516,8 +516,8 @@ export default function PageListingPage() {
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Form Fields</h4>
                   <div className="space-y-2">
-                    {page.forms[0].sections?.flatMap(section =>
-                      section.fields?.filter(field => field.name && field.name !== 'title')
+                    {(page.forms[0].sections || []).flatMap(section =>
+                      (section.fields || []).filter(field => field.name && field.name !== 'title')
                         .map(field => (
                           <label key={field.name} className="flex items-center gap-3">
                             <input

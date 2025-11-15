@@ -154,7 +154,7 @@ const DynamicFormRenderer = ({
 
       // Validate each row in the repeater
       sectionValue.forEach((rowData, rowIndex) => {
-        section.fields.forEach(field => {
+        (section.fields || []).forEach(field => {
           const fieldValue = rowData[field.name]
           const error = validateField(field, fieldValue)
           if (error) {
@@ -164,7 +164,7 @@ const DynamicFormRenderer = ({
       })
     } else {
       // Regular section validation
-      section.fields.forEach(field => {
+      (section.fields || []).forEach(field => {
         // Check if field should be displayed (dependency check)
         if (field.dependsOn) {
           const dependentValue = formData[field.dependsOn.field]
@@ -299,7 +299,7 @@ const DynamicFormRenderer = ({
     // Validate all sections across all pages
     const allErrors = {}
     pages.forEach(page => {
-      page.sections.forEach(section => {
+      (page.sections || []).forEach(section => {
         const sectionErrors = validateSection(section)
         Object.assign(allErrors, sectionErrors)
       })
@@ -971,7 +971,7 @@ const DynamicFormRenderer = ({
         ? [
             ...sectionValue,
             ...Array.from({ length: minRows - sectionValue.length }, () =>
-              section.fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
+              (section.fields || []).reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
             )
           ]
         : sectionValue
@@ -1076,7 +1076,7 @@ const DynamicFormRenderer = ({
 
                 {/* Render all fields exactly like in regular sections */}
                 <div className="hidden lg:grid grid-cols-12 gap-3">
-                  {section.fields.map(field => {
+                  {(section.fields || []).map(field => {
                     const columnSpan = field.columnSpan || 12
                     const gridColumn = field.gridColumn || 1
                     const gridRow = field.gridRow || 1
@@ -1135,7 +1135,7 @@ const DynamicFormRenderer = ({
 
                 {/* Mobile/Tablet: Responsive layout */}
                 <div className="lg:hidden grid grid-cols-12 gap-3">
-                  {sortFieldsByGridPosition(section.fields).map(field => {
+                  {sortFieldsByGridPosition(section.fields || []).map(field => {
                     const columnSpan = field.columnSpan || 12
 
                     return (
@@ -1205,8 +1205,8 @@ const DynamicFormRenderer = ({
       // On mobile/tablet: use responsive Tailwind classes
       
       // Calculate max row for proper grid sizing
-      const maxRow = section.fields.length > 0 
-        ? Math.max(...section.fields.map(f => f.gridRow || 1))
+      const maxRow = (section.fields || []).length > 0 
+        ? Math.max(...(section.fields || []).map(f => f.gridRow || 1))
         : 1
 
       return (
@@ -1343,7 +1343,7 @@ const DynamicFormRenderer = ({
       return 'empty'
     } else {
       // Regular section status calculation
-      const sectionFields = section.fields.filter(field => {
+      const sectionFields = (section.fields || []).filter(field => {
         // Check dependency
         if (field.dependsOn) {
           const dependentValue = formData[field.dependsOn.field]
@@ -1580,7 +1580,7 @@ const DynamicFormRenderer = ({
                               
                               {/* Field Count */}
                               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                {section.fields.filter(f => {
+                                {(section.fields || []).filter(f => {
                                   if (f.dependsOn) {
                                     const depValue = formData[f.dependsOn.field]
                                     return depValue === f.dependsOn.value
