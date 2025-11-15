@@ -7,6 +7,7 @@ import Card from '@/components/common/Card'
 import RightResizableSidebar from '@/components/common/RightResizableSidebar'
 import { useToast } from '@/context/ToastContext'
 import { FiChevronRight, FiChevronLeft, FiSave, FiCheckCircle, FiCircle, FiAlertCircle } from 'react-icons/fi'
+import { getResponsiveColSpan, getGridColumnStyle, sortFieldsByGridPosition } from '@/lib/gridLayoutUtils'
 
 /**
  * Nested Tabs Component
@@ -66,41 +67,15 @@ const NestedTabsRenderer = ({ tabsField, dataContext, pathPrefix, renderSection 
  * Helper function to get responsive column span classes
  * Supports both old format (number) and new format (object with mobile/tablet/desktop)
  */
-const getResponsiveColSpan = (columnSpan) => {
-  // Default values for responsive behavior
-  if (typeof columnSpan === 'number' || !columnSpan) {
-    // Backward compatibility: use same span for all sizes
-    const span = columnSpan || 12
-    return `col-span-${span}`
-  }
-
-  // New format: { mobile: 12, tablet: 6, desktop: 4 }
-  const mobile = columnSpan.mobile || 12
-  const tablet = columnSpan.tablet || 6
-  const desktop = columnSpan.desktop || 4
-
-  // Use Tailwind responsive classes for responsive layout
-  // Base (mobile): col-span-X
-  // md (>= 768px, tablet): md:col-span-X
-  // lg (>= 1024px, desktop and up): lg:col-span-X
-  return `col-span-${mobile} md:col-span-${tablet} lg:col-span-${desktop}`
-}
+// Using shared utility from gridLayoutUtils
+// const getResponsiveColSpan = (columnSpan) => { ... }
 
 /**
  * Helper function to get grid column style for absolute positioning
  * For responsive column spans, returns null to let CSS classes handle it
  */
-const getGridColumnStyle = (columnSpan, gridColumn = 1) => {
-  // If responsive column span is used, don't use inline styles
-  // The responsive Tailwind classes will handle the layout
-  if (typeof columnSpan === 'object') {
-    return undefined // Let the responsive classes handle it
-  }
-
-  // For backward compatibility with numeric columnSpan
-  const span = columnSpan || 12
-  return `${gridColumn} / span ${span}`
-}
+// Using shared utility from gridLayoutUtils
+// const getGridColumnStyle = (columnSpan, gridColumn = 1) => { ... }
 
 /**
  * Dynamic Form Renderer Component
@@ -1100,24 +1075,73 @@ const DynamicFormRenderer = ({
                 </div>
 
                 {/* Render all fields exactly like in regular sections */}
-                <div className="grid grid-cols-12 gap-3">
+                <div className="hidden lg:grid grid-cols-12 gap-3">
                   {section.fields.map(field => {
                     const columnSpan = field.columnSpan || 12
                     const gridColumn = field.gridColumn || 1
                     const gridRow = field.gridRow || 1
+                    const span = typeof columnSpan === 'object' 
+                      ? (columnSpan.desktop || 4) 
+                      : (columnSpan || 4)
+
+                    return (
+                      <div
+                        key={`${field.name}-${rowIndex}`}
+                        className="w-full"
+                        style={{
+                          gridColumn: `${gridColumn} / span ${span}`,
+                          gridRow: gridRow
+                        }}
+                      >
+                        {field.type === 'section' || field.type === 'tab' ? (
+                          // For nested sections/tabs in repeaters, use data context pattern
+                          renderField({
+                            ...field,
+                            dataContext: () => {
+                              const nestedData = rowData[field.name] || {}
+                              return {
+                                getData: (key) => nestedData[key],
+                                setData: (key, value) => {
+                                  const newNestedData = { ...nestedData, [key]: value }
+                                  handleRepeaterChange(rowIndex, field.name, newNestedData)
+                                },
+                                getError: (key) => errors[`${sectionId}_${rowIndex}_${field.name}.${key}`],
+                                clearError: (key) => {
+                                  if (errors[`${sectionId}_${rowIndex}_${field.name}.${key}`]) {
+                                    setErrors(prev => {
+                                      const newErrors = { ...prev }
+                                      delete newErrors[`${sectionId}_${rowIndex}_${field.name}.${key}`]
+                                      return newErrors
+                                    })
+                                  }
+                                }
+                              }
+                            }
+                          })
+                        ) : (
+                          // Regular fields in repeaters
+                          renderField({
+                            ...field,
+                            name: `${sectionId}_${rowIndex}_${field.name}`,
+                            value: rowData[field.name] || '',
+                            onChange: (fieldName, value) => handleRepeaterChange(rowIndex, field.name, value),
+                            error: errors[`${sectionId}_${rowIndex}_${field.name}`]
+                          })
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Mobile/Tablet: Responsive layout */}
+                <div className="lg:hidden grid grid-cols-12 gap-3">
+                  {sortFieldsByGridPosition(section.fields).map(field => {
+                    const columnSpan = field.columnSpan || 12
 
                     return (
                       <div
                         key={`${field.name}-${rowIndex}`}
                         className={getResponsiveColSpan(columnSpan)}
-                        style={{
-                          // Only apply grid positioning for non-responsive fields
-                          ...(typeof columnSpan !== 'object' && getGridColumnStyle(columnSpan, gridColumn) && {
-                            gridColumn: getGridColumnStyle(columnSpan, gridColumn)
-                          }),
-                          // Only apply gridRow for non-responsive fields
-                          ...(typeof columnSpan !== 'object' && { gridRow: gridRow })
-                        }}
                       >
                         {field.type === 'section' || field.type === 'tab' ? (
                           // For nested sections/tabs in repeaters, use data context pattern
@@ -1177,6 +1201,14 @@ const DynamicFormRenderer = ({
       )
     } else {
       // Regular Section - Grid Layout
+      // On desktop: use absolute grid positioning with explicit gridRow/gridColumn
+      // On mobile/tablet: use responsive Tailwind classes
+      
+      // Calculate max row for proper grid sizing
+      const maxRow = section.fields.length > 0 
+        ? Math.max(...section.fields.map(f => f.gridRow || 1))
+        : 1
+
       return (
         <Card
           key={sectionId}
@@ -1191,27 +1223,59 @@ const DynamicFormRenderer = ({
             )}
           </div>
 
-          <div className="grid grid-cols-12 gap-3">
+          {/* Desktop: Grid layout respecting gridRow and gridColumn from FormBuilder */}
+          <div 
+            className="hidden lg:grid grid-cols-12 gap-3"
+            style={{
+              gridAutoRows: 'min-content',
+            }}
+          >
             {section.fields.map(field => {
               const columnSpan = field.columnSpan || 12
               const gridColumn = field.gridColumn || 1
               const gridRow = field.gridRow || 1
+              const span = typeof columnSpan === 'object' 
+                ? (columnSpan.desktop || 4) 
+                : (columnSpan || 4)
+
+              return (
+                <div
+                  key={field.name}
+                  className="w-full"
+                  style={{
+                    gridColumn: `${gridColumn} / span ${span}`,
+                    gridRow: gridRow
+                  }}
+                >
+                  {isNested ? (
+                    renderField({
+                      ...field,
+                      value: dataContext().getData(field.name) || '',
+                      onChange: (fieldName, value) => {
+                        dataContext().setData(field.name, value)
+                        dataContext().clearError(field.name)
+                      },
+                      error: dataContext().getError(field.name)
+                    })
+                  ) : (
+                    renderField(field)
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Mobile/Tablet: Responsive layout using Tailwind responsive classes */}
+          <div className="lg:hidden grid grid-cols-12 gap-3">
+            {sortFieldsByGridPosition(section.fields).map(field => {
+              const columnSpan = field.columnSpan || 12
 
               return (
                 <div
                   key={field.name}
                   className={getResponsiveColSpan(columnSpan)}
-                  style={{
-                    // Only apply grid positioning for non-responsive fields
-                    ...(typeof columnSpan !== 'object' && getGridColumnStyle(columnSpan, gridColumn) && {
-                      gridColumn: getGridColumnStyle(columnSpan, gridColumn)
-                    }),
-                    // Only apply gridRow for non-responsive fields
-                    ...(typeof columnSpan !== 'object' && { gridRow: gridRow })
-                  }}
                 >
                   {isNested ? (
-                    // For nested sections, handle data context
                     renderField({
                       ...field,
                       value: dataContext().getData(field.name) || '',

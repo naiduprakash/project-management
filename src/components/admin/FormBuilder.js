@@ -26,6 +26,7 @@ import {
   useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { getNextGridPosition, migrateFieldsToGrid } from '@/lib/gridLayoutUtils'
 
 // Custom styles for section/tab hover actions
 const hoverStyles = `
@@ -1547,60 +1548,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
     })
   )
 
-  // Helper function to migrate fields to explicit grid positioning
-  const migrateFieldsToGrid = (pages) => {
-    return pages.map(page => ({
-      ...page,
-      sections: page.sections.map(section => ({
-        ...section,
-        fields: section.fields.map((field, idx) => {
-          // If field already has grid positioning, keep it
-          if (field.gridRow && field.gridColumn) {
-            return field
-          }
-          
-          // Otherwise, auto-calculate position based on order
-          let row = 1
-          let col = 1
-          let accumulatedSpan = 0
-          
-          // Calculate position based on previous fields
-          for (let i = 0; i < idx; i++) {
-            const prevField = section.fields[i]
-            const prevSpan = prevField.columnSpan || 4
-            
-            if (accumulatedSpan + prevSpan > 12) {
-              // Move to next row
-              row++
-              accumulatedSpan = 0
-            }
-            
-            if (i === idx - 1) {
-              // This is the previous field
-              col = (prevField.gridColumn || (accumulatedSpan + 1)) + prevSpan
-              if (col > 12) {
-                row++
-                col = 1
-              }
-            }
-            
-            accumulatedSpan += prevSpan
-            if (accumulatedSpan >= 12) {
-              row++
-              accumulatedSpan = 0
-            }
-          }
-          
-          return {
-            ...field,
-            columnSpan: field.columnSpan || 4,
-            gridRow: row,
-            gridColumn: col
-          }
-        })
-      }))
-    }))
-  }
+  // Using shared migrateFieldsToGrid from gridLayoutUtils
+  // import { migrateFieldsToGrid } from '@/lib/gridLayoutUtils'
 
   useEffect(() => {
     console.log('FormBuilder received form data:', formToEdit)
@@ -1901,36 +1850,8 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
       targetFields = []
     }
     
-    // Calculate next available position
-    let nextRow = 0
-    let nextCol = 1 // Grid columns are 1-indexed in CSS
-    
-    if (targetFields.length > 0) {
-      // Find the last field's position
-      const lastField = targetFields[targetFields.length - 1]
-      const lastRow = lastField.gridRow || 1
-      const lastCol = lastField.gridColumn || 1
-      const lastSpan = lastField.columnSpan || 4
-      
-      // Nested sections and tabs (columnSpan 12) always start on a new row
-      if (fieldType === 'section' || fieldType === 'tab') {
-        nextRow = lastRow + 1
-        nextCol = 1
-      } else {
-      // Try to place in same row if space available
-      if (lastCol + lastSpan - 1 + 4 <= 12) {
-        nextRow = lastRow
-        nextCol = lastCol + lastSpan
-      } else {
-        // Move to next row
-        nextRow = lastRow + 1
-        nextCol = 1
-        }
-      }
-    } else {
-      nextRow = 1
-      nextCol = 1
-    }
+    // Calculate next available position using shared utility
+    const { row: nextRow, col: nextCol } = getNextGridPosition(targetFields, fieldType)
     
     const newField = {
       id: uuidv4(),
