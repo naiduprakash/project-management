@@ -1524,7 +1524,7 @@ const DynamicFormRenderer = ({
           defaultWidth={256}
           collapsedWidth={48}
           storageKey="formSectionSidebarWidth"
-          className="flex-shrink-0 h-full"
+          className="hidden md:flex md:flex-shrink-0 h-full"
           isOpen={isRightSidebarOpen}
           onClose={() => setIsRightSidebarOpen(false)}
         >

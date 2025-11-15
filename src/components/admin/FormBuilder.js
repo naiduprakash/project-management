@@ -3767,7 +3767,7 @@ const FormBuilder = ({ form = null, initialData = null, onSave, onCancel }) => {
           defaultWidth={256}
           collapsedWidth={48}
           storageKey="formBuilderSectionSidebarWidth"
-          className="flex-shrink-0 h-full"
+          className="hidden md:flex md:flex-shrink-0 h-full"
           isOpen={isRightSidebarOpen}
           onClose={() => setIsRightSidebarOpen(false)}
         >

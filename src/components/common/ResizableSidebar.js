@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi'
 
 const ResizableSidebar = ({
@@ -125,7 +126,8 @@ const ResizableSidebar = ({
     return null
   }
 
-  return (
+  // Create sidebar content
+  const sidebarContent = (
     <>
       {/* Mobile: Backdrop overlay */}
       {isMobile && isOpen && (
@@ -139,11 +141,13 @@ const ResizableSidebar = ({
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col relative
-          ${isMobile ? 'fixed top-0 left-0 h-full z-50 shadow-xl' : ''}
+        className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col
+          ${isMobile ? 'fixed inset-y-0 left-0 z-50 shadow-xl' : 'relative'}
           ${className}`}
         style={{
-          width: isMobile ? '280px' : (isCollapsed ? `${collapsedWidth}px` : `${sidebarWidth}px`),
+          width: isMobile ? 'max(70vw, 75vw)' : (isCollapsed ? `${collapsedWidth}px` : `${sidebarWidth}px`),
+          maxWidth: isMobile ? '75vw' : 'none',
+          height: isMobile ? '100vh' : 'auto',
           transition: isResizing ? 'none' : (isMobile ? 'transform 0.3s ease' : 'width 0.3s ease'),
           transform: isMobile ? (isOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none'
         }}
@@ -214,6 +218,14 @@ const ResizableSidebar = ({
       </aside>
     </>
   )
+
+  // On mobile, render using portal to avoid affecting layout
+  if (isMobile) {
+    return createPortal(sidebarContent, document.body)
+  }
+
+  // On desktop, render normally in the DOM
+  return sidebarContent
 }
 
 export default ResizableSidebar
