@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Card from './Card'
 import Button from './Button'
-import { FiSearch, FiFilter, FiPlus, FiGrid, FiList, FiChevronUp, FiChevronDown, FiAlignLeft, FiAlignCenter, FiAlignRight } from 'react-icons/fi'
+import Modal from './Modal'
+import { FiSearch, FiFilter, FiPlus, FiGrid, FiList, FiChevronUp, FiChevronDown, FiAlignLeft, FiAlignCenter, FiAlignRight, FiColumns } from 'react-icons/fi'
 
 const DataTable = ({
   title,
@@ -23,6 +24,7 @@ const DataTable = ({
   defaultView = 'list', // 'list' or 'grid'
   gridCols = 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
   enableViewToggle = true, // Allow users to toggle between views
+  enableColumnSelector = true, // Allow users to select visible columns
   customActions // Custom actions to render beside filters
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -32,6 +34,8 @@ const DataTable = ({
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [columnAlignments, setColumnAlignments] = useState({})
   const [hoveredColumn, setHoveredColumn] = useState(null)
+  const [showColumnSelector, setShowColumnSelector] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState(columns.map((_, idx) => idx))
 
   // Search functionality
   const searchedData = data.filter(item => {
@@ -111,6 +115,18 @@ const DataTable = ({
       [columnIndex]: alignment
     }))
   }
+
+  const handleColumnToggle = (columnIndex) => {
+    setVisibleColumns(prev => {
+      if (prev.includes(columnIndex)) {
+        return prev.filter(idx => idx !== columnIndex)
+      } else {
+        return [...prev, columnIndex].sort((a, b) => a - b)
+      }
+    })
+  }
+
+  const displayColumns = columns.filter((_, idx) => visibleColumns.includes(idx))
 
   const getColumnAlignment = (column, columnIndex) => {
     // Check if user has set custom alignment
@@ -200,6 +216,19 @@ const DataTable = ({
                 </Button>
               )}
 
+              {/* Columns Toggle */}
+              {enableColumnSelector && columns.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowColumnSelector(!showColumnSelector)}
+                  className="min-h-[44px] sm:min-h-[32px] flex-grow sm:flex-grow-0"
+                >
+                  <FiColumns className="mr-2" />
+                  <span className="hidden xs:inline">Columns</span>
+                </Button>
+              )}
+
               {/* Custom Actions */}
               {customActions}
             </div>
@@ -239,6 +268,48 @@ const DataTable = ({
               )}
             </div>
           )}
+
+          {/* Column Selector Modal */}
+          <Modal
+            isOpen={showColumnSelector}
+            onClose={() => setShowColumnSelector(false)}
+            title="Select Columns"
+          >
+            <div className="space-y-3 max-h-96 overflow-y-auto py-4">
+              {columns.map((column, idx) => (
+                <div key={idx} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`column-${idx}`}
+                    checked={visibleColumns.includes(idx)}
+                    onChange={() => handleColumnToggle(idx)}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  />
+                  <label
+                    htmlFor={`column-${idx}`}
+                    className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer flex-grow"
+                  >
+                    {column.header}
+                  </label>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button 
+                variant="ghost" 
+                onClick={() => setVisibleColumns(columns.map((_, idx) => idx))}
+                className="flex-1"
+              >
+                Show All
+              </Button>
+              <Button 
+                onClick={() => setShowColumnSelector(false)}
+                className="flex-1"
+              >
+                Done
+              </Button>
+            </div>
+          </Modal>
         </div>
       </Card>
 
@@ -271,22 +342,23 @@ const DataTable = ({
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm sm:text-base">
               <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0">
                 <tr>
-                  {columns.map((column, index) => {
+                  {displayColumns.map((column, displayIdx) => {
+                    const columnIndex = columns.indexOf(column)
                     const isSortable = column.sortKey || column.accessor
                     const sortKey = column.sortKey || column.accessor
                     const isActive = sortConfig.key === sortKey
-                    const align = getColumnAlignment(column, index)
-                    const isHovered = hoveredColumn === index
+                    const align = getColumnAlignment(column, columnIndex)
+                    const isHovered = hoveredColumn === columnIndex
                     
                     return (
                       <th
-                        key={index}
+                        key={columnIndex}
                         className={`px-3 sm:px-6 py-2 sm:py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative whitespace-nowrap ${
                           align === 'right' ? 'text-right' : 
                           align === 'center' ? 'text-center' : 'text-left'
                         } ${isSortable ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors' : ''}`}
                         onClick={() => isSortable && handleSort(sortKey)}
-                        onMouseEnter={() => setHoveredColumn(index)}
+                        onMouseEnter={() => setHoveredColumn(columnIndex)}
                         onMouseLeave={() => setHoveredColumn(null)}
                       >
                         <div className={`inline-flex items-center gap-1 ${
@@ -326,7 +398,7 @@ const DataTable = ({
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
-                              onClick={(e) => handleAlignmentChange(index, 'left', e)}
+                              onClick={(e) => handleAlignmentChange(columnIndex, 'left', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'left' 
                                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
@@ -337,7 +409,7 @@ const DataTable = ({
                               <FiAlignLeft size={12} />
                             </button>
                             <button
-                              onClick={(e) => handleAlignmentChange(index, 'center', e)}
+                              onClick={(e) => handleAlignmentChange(columnIndex, 'center', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'center' 
                                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
@@ -348,7 +420,7 @@ const DataTable = ({
                               <FiAlignCenter size={12} />
                             </button>
                             <button
-                              onClick={(e) => handleAlignmentChange(index, 'right', e)}
+                              onClick={(e) => handleAlignmentChange(columnIndex, 'right', e)}
                               className={`p-0.5 rounded transition-colors ${
                                 align === 'right' 
                                   ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
@@ -377,6 +449,9 @@ const DataTable = ({
                       const content = column.render
                         ? column.render(item)
                         : column.accessor?.split('.').reduce((obj, key) => obj?.[key], item)
+                      
+                      // Skip if column is not visible
+                      if (!visibleColumns.includes(colIndex)) return null
                       
                       return (
                         <td
