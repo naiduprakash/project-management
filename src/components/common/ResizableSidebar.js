@@ -22,6 +22,7 @@ const ResizableSidebar = ({
   const [isMobile, setIsMobile] = useState(false)
   const sidebarRef = useRef(null)
   const lastWidthRef = useRef(defaultWidth)
+  const collapsedStateKey = `${storageKey}_collapsed`
 
   // Detect mobile screen size
   useEffect(() => {
@@ -36,14 +37,20 @@ const ResizableSidebar = ({
   }, [])
 
   useEffect(() => {
-    // Load saved width from localStorage
+    // Load saved width and collapsed state from localStorage
     const savedWidth = localStorage.getItem(storageKey)
     if (savedWidth) {
       const width = parseInt(savedWidth, 10)
       setSidebarWidth(width)
       lastWidthRef.current = width
     }
-  }, [storageKey])
+
+    // Load saved collapsed state
+    const savedCollapsedState = localStorage.getItem(collapsedStateKey)
+    if (savedCollapsedState !== null) {
+      setIsCollapsed(savedCollapsedState === 'true')
+    }
+  }, [storageKey, collapsedStateKey])
 
   // Handle mouse move for resizing (desktop only)
   useEffect(() => {
@@ -103,11 +110,13 @@ const ResizableSidebar = ({
       // Expand: restore previous width
       setSidebarWidth(lastWidthRef.current)
       setIsCollapsed(false)
+      localStorage.setItem(collapsedStateKey, 'false')
     } else {
       // Collapse: save current width and collapse
       lastWidthRef.current = sidebarWidth
       setSidebarWidth(collapsedWidth)
       setIsCollapsed(true)
+      localStorage.setItem(collapsedStateKey, 'true')
     }
   }
 

@@ -160,6 +160,7 @@ export default function AdminUsersPage() {
           data={users}
           searchPlaceholder="Search by name or email..."
           searchKeys={['name', 'email']}
+          enableColumnSelector={false}
           
           columns={[
             {
@@ -246,48 +247,70 @@ export default function AdminUsersPage() {
           emptyActionText="Create First User"
           onEmptyAction={() => handleOpenModal()}
           defaultView="list"
-          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4"
           
           // Grid view card renderer
           renderCard={(usr) => (
             <GridCard
-              title={
-                <div className="flex items-center gap-2">
-                  <Avatar name={usr.name} size="sm" />
-                  <span>{usr.name}</span>
-                </div>
-              }
-              description={usr.email}
-              badges={[
-                {
-                  label: usr.role?.displayName || 'Unknown',
-                  className: 'bg-primary-100 text-primary-800'
-                },
-                {
-                  label: usr.active ? 'Active' : 'Inactive',
-                  className: usr.active 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }
-              ]}
               actions={[
                 {
                   label: 'Edit',
                   icon: FiEdit,
                   variant: 'ghost',
-                  onClick: () => handleOpenModal(usr)
+                  onClick: () => handleOpenModal(usr),
+                  showLabel: false
                 },
                 {
                   label: 'Delete',
                   icon: FiTrash2,
                   variant: 'ghost',
                   onClick: () => handleDelete(usr.id, usr.name),
-                  className: usr.id === user.id 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'text-red-600 hover:bg-red-50'
+                  className: usr.id === user.id
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20',
+                  showLabel: false
                 }
               ]}
-            />
+            >
+              <div className="flex flex-col h-full">
+                {/* Header section with user info and status */}
+                <div className="mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Avatar name={usr.name} size="sm" className="flex-shrink-0" />
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 line-clamp-2">
+                        {usr.name}
+                      </h3>
+                    </div>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0 ${
+                      usr.active
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {usr.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  {usr.email && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1 mb-2">
+                      {usr.email}
+                    </p>
+                  )}
+                </div>
+
+                {/* Role section */}
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Role
+                  </p>
+                  <span className="text-sm px-2 py-1 rounded-full font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200">
+                    {usr.role?.displayName || 'Unknown'}
+                  </span>
+                </div>
+
+                {/* Spacer to push actions to bottom */}
+                <div className="flex-1" />
+              </div>
+            </GridCard>
           )}
         />
 

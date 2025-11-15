@@ -35,6 +35,8 @@ export default function PageListingPage() {
   const [columnOrder, setColumnOrder] = useState(['title', 'status', 'createdAt'])
   const [draggedItem, setDraggedItem] = useState(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [touchDraggedIndex, setTouchDraggedIndex] = useState(null)
+  const [touchDragOverIndex, setTouchDragOverIndex] = useState(null)
 
   useEffect(() => {
     if (params.slug) {
@@ -242,6 +244,45 @@ export default function PageListingPage() {
   const handleDragEnd = () => {
     setDraggedItem(null)
     setDragOverIndex(null)
+  }
+
+  // Touch handlers for mobile drag-drop support
+  const handleTouchStart = (e, index) => {
+    setTouchDraggedIndex(index)
+  }
+
+  const handleTouchMove = (e, index) => {
+    if (touchDraggedIndex === null) return
+    
+    const touch = e.touches[0]
+    const element = document.elementFromPoint(touch.clientX, touch.clientY)
+    
+    // Try to find the closest draggable item
+    if (element) {
+      const draggableParent = element.closest('[data-draggable-index]')
+      if (draggableParent) {
+        const hoverIndex = parseInt(draggableParent.getAttribute('data-draggable-index'))
+        setTouchDragOverIndex(hoverIndex)
+      }
+    }
+  }
+
+  const handleTouchEnd = (e, dropIndex) => {
+    if (touchDraggedIndex === null || touchDraggedIndex === dropIndex) {
+      setTouchDraggedIndex(null)
+      setTouchDragOverIndex(null)
+      return
+    }
+
+    const newOrder = [...columnOrder]
+    const [removed] = newOrder.splice(touchDraggedIndex, 1)
+    newOrder.splice(dropIndex, 0, removed)
+
+    setColumnOrder(newOrder)
+    saveColumnPreferences({ order: newOrder })
+    
+    setTouchDraggedIndex(null)
+    setTouchDragOverIndex(null)
   }
 
   const columns = useMemo(() => {
@@ -548,46 +589,135 @@ export default function PageListingPage() {
             emptyActionText="Create First Entry"
             onEmptyAction={() => router.push(`/pages/${params.slug}/new`)}
             defaultView="list"
-            gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            gridCols="grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4"
 
             // Grid view card renderer
-            renderCard={(entry) => (
-              <GridCard
-                title={entry.title || 'Untitled Entry'}
-                description={entry.description}
-                badges={[
-                  {
-                    label: entry.status,
-                    className: entry.status === 'published'
-                      ? 'bg-primary-100 text-primary-800'
-                      : entry.status === 'draft'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-orange-100 text-orange-800'
+            renderCard={(entry) => {
+              // Collect all visible field data in column order
+              const fieldData = []
+              
+              // Add fields in the order defined by columnOrder (respecting visibility)
+              columnOrder.forEach(key => {
+                if (!visibleColumns[key]) return
+                
+                if (key === 'status') {
+                  fieldData.push({
+                    label: 'Status',
+                    value: entry.status?.charAt(0).toUpperCase() + entry.status?.slice(1) || '—',
+                    isDefault: true
+                  })
+                } else if (key === 'createdAt') {
+                  fieldData.push({
+                    label: 'Created',
+                    value: format(new Date(entry.createdAt), 'MMM dd, yyyy'),
+                    isDefault: true
+                  })
+                } else if (!['title', 'actions'].includes(key)) {
+                  // Add form field data if visible (show even if empty)
+                  // Find field label
+                  let fieldLabel = key
+                  if (page?.forms && page.forms.length > 0) {
+                    const form = page.forms[0]
+                    const allSections = [
+                      ...(form.sections || []),
+                      ...(form.pages || []).flatMap(p => p.sections || [])
+                    ]
+                    
+                    for (const section of allSections) {
+                      const field = section.fields?.find(f => f.name === key)
+                      if (field) {
+                        fieldLabel = field.label || field.name
+                        break
+                      }
+                    }
                   }
-                ]}
-                metadata={[
-                  { label: 'Created', value: format(new Date(entry.createdAt), 'MMM dd, yyyy') }
-                ]}
-                actions={[
-                  {
-                    label: 'View',
-                    icon: FiEye,
-                    onClick: () => router.push(`/pages/${params.slug}/${entry.id}`)
-                  },
-                  {
-                    label: 'Edit',
-                    icon: FiEdit2,
-                    onClick: () => router.push(`/pages/${params.slug}/${entry.id}/edit`)
-                  },
-                  {
-                    label: 'Delete',
-                    icon: FiTrash2,
-                    onClick: () => handleDelete(entry.id, entry.title || 'Untitled Entry'),
-                    variant: 'danger'
+
+                  // Get value and format for display
+                  const value = entry.data?.[key]
+                  let displayValue = '—'
+                  
+                  if (value !== null && value !== undefined && value !== '') {
+                    if (Array.isArray(value)) {
+                      displayValue = value.join(', ')
+                    } else if (typeof value === 'object') {
+                      displayValue = JSON.stringify(value)
+                    } else {
+                      displayValue = String(value)
+                    }
                   }
-                ]}
-              />
-            )}
+
+                  fieldData.push({
+                    label: fieldLabel,
+                    value: displayValue,
+                    isDefault: false
+                  })
+                }
+              })
+
+              // Use first field data as primary (header), rest as secondary
+              const primaryField = fieldData[0]
+              const secondaryFields = fieldData.slice(1)
+
+              return (
+                <GridCard
+                  actions={[
+                    {
+                      label: 'View',
+                      icon: FiEye,
+                      onClick: () => router.push(`/pages/${params.slug}/${entry.id}`)
+                    },
+                    {
+                      label: 'Edit',
+                      icon: FiEdit2,
+                      onClick: () => router.push(`/pages/${params.slug}/${entry.id}/edit`)
+                    },
+                    {
+                      label: 'Delete',
+                      icon: FiTrash2,
+                      onClick: () => handleDelete(entry.id, entry.title || 'Untitled Entry'),
+                      variant: 'danger'
+                    }
+                  ]}
+                >
+                  <div className="flex flex-col h-full">
+                    {/* Primary field (first in order) - styled as card header */}
+                    {primaryField && (
+                      <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          {primaryField.label}
+                        </p>
+                        <p className="text-base font-semibold text-gray-900 dark:text-gray-100 line-clamp-2">
+                          {primaryField.value}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Secondary fields - compact grid layout */}
+                    {secondaryFields.length > 0 && (
+                      <div className="flex-1 grid grid-cols-2 gap-3 gap-y-4">
+                        {secondaryFields.map((item, index) => (
+                          <div key={index} className="min-w-0">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1 truncate">
+                              {item.label}
+                            </p>
+                            <p className="text-sm text-gray-900 dark:text-gray-100 line-clamp-2 break-words">
+                              {item.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {fieldData.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        No fields to display
+                      </p>
+                    )}
+                  </div>
+                </GridCard>
+              )
+            }}
           />
         )}
         </div>
@@ -776,14 +906,14 @@ export default function PageListingPage() {
                   Drag and drop to reorder the columns in the table.
                 </p>
 
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-96 overflow-y-auto touch-pan-y">
                   {columnOrder.filter(key => visibleColumns.hasOwnProperty(key) && visibleColumns[key] && key !== 'actions').map((key, displayIndex) => {
                     // Get the actual index in columnOrder for correct drag-drop operations
                     const actualIndex = columnOrder.indexOf(key)
-                    const isDragging = draggedItem?.index === actualIndex
-                    const isDragOver = dragOverIndex === actualIndex
-                    const isDragBefore = dragOverIndex === actualIndex && draggedItem && draggedItem.index > actualIndex
-                    const isDragAfter = dragOverIndex === actualIndex && draggedItem && draggedItem.index < actualIndex
+                    const isDragging = draggedItem?.index === actualIndex || touchDraggedIndex === actualIndex
+                    const isDragOver = dragOverIndex === actualIndex || touchDragOverIndex === actualIndex
+                    const isDragBefore = (dragOverIndex === actualIndex || touchDragOverIndex === actualIndex) && ((draggedItem && draggedItem.index > actualIndex) || (touchDraggedIndex !== null && touchDraggedIndex > actualIndex))
+                    const isDragAfter = (dragOverIndex === actualIndex || touchDragOverIndex === actualIndex) && ((draggedItem && draggedItem.index < actualIndex) || (touchDraggedIndex !== null && touchDraggedIndex < actualIndex))
                     
                     let label = key
                     if (key === 'title') label = 'Title'
@@ -808,7 +938,7 @@ export default function PageListingPage() {
                     }
 
                     return (
-                      <div key={key} className="relative">
+                      <div key={key} className="relative" data-draggable-index={actualIndex}>
                         {/* Top insertion line - shown when dragging over and item is coming from below */}
                         {isDragBefore && (
                           <div className="absolute -top-1 left-0 right-0 h-0.5 bg-primary-500 dark:bg-primary-400 z-50" />
@@ -821,15 +951,18 @@ export default function PageListingPage() {
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, actualIndex)}
                           onDragEnd={handleDragEnd}
-                          className={`flex items-center gap-3 p-3 rounded-lg cursor-move transition-all duration-200 ${
+                          onTouchStart={(e) => handleTouchStart(e, actualIndex)}
+                          onTouchMove={(e) => handleTouchMove(e, actualIndex)}
+                          onTouchEnd={(e) => handleTouchEnd(e, actualIndex)}
+                          className={`flex items-center gap-3 p-4 rounded-lg transition-all duration-200 select-none active:scale-95 sm:p-3 ${
                             isDragging
-                              ? 'opacity-40 bg-gray-300 dark:bg-gray-600 border-2 border-dashed border-gray-400 dark:border-gray-500'
+                              ? 'opacity-40 bg-gray-300 dark:bg-gray-600 border-2 border-dashed border-gray-400 dark:border-gray-500 cursor-grabbing'
                               : isDragOver
-                              ? 'bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-500 dark:border-primary-400 shadow-md'
-                              : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent'
+                              ? 'bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-500 dark:border-primary-400 shadow-md cursor-grab'
+                              : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-2 border-transparent cursor-grab active:cursor-grabbing'
                           }`}
                         >
-                          <FiColumns className={`flex-shrink-0 transition-colors ${
+                          <FiColumns className={`flex-shrink-0 transition-colors text-lg sm:text-base ${
                             isDragOver 
                               ? 'text-primary-600 dark:text-primary-400' 
                               : isDragging
@@ -845,7 +978,7 @@ export default function PageListingPage() {
                           }`}>
                             {label}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
                             {displayIndex + 1}
                           </span>
                         </div>

@@ -13,7 +13,7 @@ import Button from '@/components/common/Button'
 import Modal from '@/components/common/Modal'
 import Input from '@/components/common/Input'
 import api from '@/lib/api'
-import { FiEdit, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi'
+import { FiEdit, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiPlus, FiEdit3 } from 'react-icons/fi'
 import Link from 'next/link'
 import ActionButton from '@/components/common/ActionButton'
 
@@ -159,6 +159,7 @@ export default function AdminPagesPage() {
           data={pages}
           searchPlaceholder="Search pages..."
           searchKeys={['title', 'description']}
+          enableColumnSelector={false}
           
           // List view columns
           columns={[
@@ -219,14 +220,14 @@ export default function AdminPagesPage() {
                   <ActionButton
                     fullText="Edit Details"
                     shortText="Edit"
-                    icon={<FiEdit2 />}
+                    icon={<FiEdit />}
                     onClick={() => handleOpenModal(page)}
                     variant="ghost"
                   />
                   <ActionButton
                     fullText="Edit Forms"
                     shortText="Forms"
-                    icon={<FiEdit />}
+                    icon={<FiEdit3 />}
                     onClick={() => router.push(`/admin/pages/${page.id}/edit`)}
                     variant="ghost"
                   />
@@ -259,52 +260,82 @@ export default function AdminPagesPage() {
           onEmptyAction={() => handleOpenModal()}
           
           defaultView="list"
-          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4"
           
           // Grid view card renderer
           renderCard={(page) => (
             <GridCard
-              title={page.title}
-              description={page.description}
-              badges={[
-                {
-                  label: page.published ? 'Published' : 'Draft',
-                  className: page.published 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }
-              ]}
               actions={[
                 {
                   label: page.published ? 'Unpublish' : 'Publish',
                   icon: page.published ? FiEyeOff : FiEye,
                   variant: 'ghost',
-                  onClick: () => handleTogglePublish(page)
+                  onClick: () => handleTogglePublish(page),
+                  showLabel: false
                 },
                 {
-                  label: 'Edit',
+                  label: 'Details',
                   icon: FiEdit,
                   variant: 'ghost',
-                  onClick: () => router.push(`/admin/pages/${page.id}/edit`)
+                  onClick: () => handleOpenModal(page),
+                  showLabel: false
+                },
+                {
+                  label: 'Forms',
+                  icon: FiEdit3,
+                  variant: 'ghost',
+                  onClick: () => router.push(`/admin/pages/${page.id}/edit`),
+                  showLabel: false
                 },
                 {
                   label: 'Delete',
                   icon: FiTrash2,
                   variant: 'ghost',
                   onClick: () => handleDelete(page.id, page.title),
-                  className: 'text-red-600 hover:bg-red-50'
+                  className: 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20',
+                  showLabel: false
                 }
               ]}
             >
-              <div className="text-sm">
-                <Link 
-                  href={`/pages/${page.slug}`}
-                  className="text-primary-600 hover:text-primary-700 hover:underline font-mono"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  /pages/{page.slug}
-                </Link>
+              <div className="flex flex-col h-full">
+                {/* Header section with title and status */}
+                <div className="mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-1.5">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 line-clamp-2">
+                      {page.title}
+                    </h3>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ml-1.5 flex-shrink-0 ${
+                      page.published
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {page.published ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
+                  {page.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+                      {page.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* URL section */}
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">
+                    URL
+                  </p>
+                  <Link
+                    href={`/pages/${page.slug}`}
+                    className="text-xs text-primary-600 hover:text-primary-700 hover:underline font-mono break-all"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    /pages/{page.slug}
+                  </Link>
+                </div>
+
+                {/* Spacer to push actions to bottom */}
+                <div className="flex-1" />
               </div>
             </GridCard>
           )}

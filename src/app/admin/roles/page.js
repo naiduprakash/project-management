@@ -165,6 +165,7 @@ export default function AdminRolesPage() {
           data={roles}
           searchPlaceholder="Search roles..."
           searchKeys={['displayName', 'name', 'description']}
+          enableColumnSelector={false}
           
           // List view columns
           columns={[
@@ -240,51 +241,76 @@ export default function AdminRolesPage() {
           onEmptyAction={() => handleOpenModal()}
           
           defaultView="list"
-          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4"
           
           // Grid view card renderer
           renderCard={(role) => (
             <GridCard
-              title={
-                <div className="flex items-center gap-2">
-                  <FiShield className="text-primary-600" />
-                  <span>{role.displayName}</span>
-                  {role.isDefault && (
-                    <span className="text-xs text-gray-500">(Default)</span>
-                  )}
-                </div>
-              }
-              description={role.description}
               actions={[
                 {
                   label: 'Edit',
                   icon: FiEdit,
-                  variant: 'outline',
-                  onClick: () => handleOpenModal(role)
+                  variant: 'ghost',
+                  onClick: () => handleOpenModal(role),
+                  showLabel: false
                 },
                 {
                   label: 'Delete',
                   icon: FiTrash2,
                   variant: 'danger',
                   onClick: () => handleDelete(role.id, role.displayName),
-                  className: role.isDefault ? 'opacity-50 cursor-not-allowed' : ''
+                  className: role.isDefault ? 'opacity-50 cursor-not-allowed' : '',
+                  showLabel: false
                 }
               ]}
             >
-              <div className="mb-2">
-                <p className="text-xs font-medium text-gray-700 mb-1">Permissions:</p>
-                <div className="flex flex-wrap gap-1">
-                  {role.permissions?.slice(0, 3).map((perm, i) => (
-                    <span key={i} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
-                      {perm}
-                    </span>
-                  ))}
-                  {role.permissions?.length > 3 && (
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded">
-                      +{role.permissions.length - 3} more
-                    </span>
+              <div className="flex flex-col h-full">
+                {/* Header section with role name and status */}
+                <div className="mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <FiShield className="text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 line-clamp-2">
+                        {role.displayName}
+                      </h3>
+                    </div>
+                    {role.isDefault && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 flex-shrink-0">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  {role.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+                      {role.description}
+                    </p>
                   )}
                 </div>
+
+                {/* Permissions section */}
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Permissions
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {role.permissions?.slice(0, 4).map((perm, i) => (
+                      <span key={i} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
+                        {perm}
+                      </span>
+                    ))}
+                    {role.permissions?.length > 4 && (
+                      <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
+                        +{role.permissions.length - 4}
+                      </span>
+                    )}
+                    {(!role.permissions || role.permissions.length === 0) && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500 italic">No permissions</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Spacer to push actions to bottom */}
+                <div className="flex-1" />
               </div>
             </GridCard>
           )}
